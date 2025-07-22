@@ -1,0 +1,39 @@
+#!/bin/bash
+# Bash completion for Makefile targets
+
+_make_completion() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # Get available image directories
+    local image_dirs=$(find images -name Dockerfile -exec dirname {} \; 2>/dev/null | sort)
+
+    # Targets that need image paths
+    local path_targets="build tag bootstrap preview-next-tag"
+
+    case "${prev}" in
+        build|tag|bootstrap|preview-next-tag)
+            COMPREPLY=( $(compgen -W "${image_dirs}" -- ${cur}) )
+            return 0
+            ;;
+        make)
+            # Get all make targets
+            local targets=$(grep -oE '^[a-zA-Z0-9_-]+:' Makefile 2>/dev/null | sed 's/://' | grep -v '^%')
+            COMPREPLY=( $(compgen -W "${targets}" -- ${cur}) )
+            return 0
+            ;;
+    esac
+
+    # If we're after a path target and haven't matched yet, suggest image paths
+    if [[ ${#COMP_WORDS[@]} -gt 2 ]]; then
+        local target="${COMP_WORDS[1]}"
+        if [[ " $path_targets " =~ " $target " ]]; then
+            COMPREPLY=( $(compgen -W "${image_dirs}" -- ${cur}) )
+            return 0
+        fi
+    fi
+}
+
+complete -F _make_completion make
