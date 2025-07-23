@@ -49,7 +49,7 @@ build: ## Build specific image (usage: make build <path>)
 
 .PHONY: run-hooks
 run-hooks: ## Run all pre-commit hooks on all files
-	pre-commit run --all-files
+	pre-commit run --all-files --hook-stage pre-commit
 
 .PHONY: tag
 tag: ## Tag a specific image with changelog message (usage: make tag <path>)

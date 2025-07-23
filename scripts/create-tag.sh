@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Create annotated git tag with changelog as message body
+# Tag a release for the given image and update the changelog
 # Usage: ./scripts/create-tag.sh <image-path>
 
 if [ $# -ne 1 ]; then
@@ -20,46 +20,47 @@ fi
 
 IMAGE_PATH="$1"
 TAG_PREFIX=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/|-|g')
-
-# Calculate next version using git-cliff (extract just the version number)
-# Override output config to get stdout for processing
-NEXT_VERSION=$(git cliff --bump --unreleased --include-path "$IMAGE_PATH/**" --tag-pattern "$TAG_PREFIX-v*" --output - 2>/dev/null | grep -oE "$TAG_PREFIX-v[0-9]+\.[0-9]+\.[0-9]+" | head -1 | sed "s/^$TAG_PREFIX-v//")
-
+NEXT_VERSION=$(git cliff --bumped-version --include-path "$IMAGE_PATH/**" --tag-pattern "$TAG_PREFIX-v*")
 if [ -z "$NEXT_VERSION" ]; then
     echo "No changes detected for $IMAGE_PATH since last tag"
     exit 1
 fi
+GIT_TAG="$NEXT_VERSION"
+CHANGELOG="CHANGELOG.md"
 
-GIT_TAG="$TAG_PREFIX-v$NEXT_VERSION"
-
-# Generate changelog content and clean it up
-# Override output config to get stdout for tag message
-CHANGELOG_RAW=$(git cliff --bump --unreleased --include-path "$IMAGE_PATH/**" --tag-pattern "$TAG_PREFIX-v*" --output - 2>/dev/null || echo "")
-
-TAG_MESSAGE="$CHANGELOG_RAW"
-
-# Generate changelog file before tagging (respects output config from cliff.toml)
-echo "Generating changelog..."
-if [ -f CHANGELOG.md ]; then
-    git cliff --bump --tag-pattern "$TAG_PREFIX-v*" --include-path "$IMAGE_PATH/**" --tag "$GIT_TAG" --prepend CHANGELOG.md --output /dev/null 2>/dev/null
-else
-    git cliff --bump --tag-pattern "$TAG_PREFIX-v*" --include-path "$IMAGE_PATH/**" --tag "$GIT_TAG" --output CHANGELOG.md 2>/dev/null
+# Check if directory exists
+if [ ! -d "$IMAGE_PATH" ]; then
+    echo "Error: Directory $IMAGE_PATH does not exist"
+    exit 1
 fi
 
-# Commit changelog if it was updated
-if git diff --quiet CHANGELOG.md 2>/dev/null; then
-    echo "No changelog changes to commit"
-else
-    echo "Committing changelog..."
-    git add CHANGELOG.md
-    git commit -m "chore: update changelog for $GIT_TAG"
+# Check if there are any uncommitted changes, fail if so
+if ! git diff-index --quiet HEAD --; then
+    echo "Error: There are uncommitted changes. Please commit or stash them before tagging."
+    exit 1
 fi
 
-# Create annotated tag with cleaned changelog as message
-if [ -n "$TAG_MESSAGE" ]; then
-    git -c core.commentChar="%" tag -a "$GIT_TAG" -m "$TAG_MESSAGE"
-    echo "✅ Created annotated tag $GIT_TAG with changelog message"
-else
-    git tag -a "$GIT_TAG" -m "Release $GIT_TAG"
-    echo "✅ Created annotated tag $GIT_TAG with default message"
+# Ensure changelog file exists
+touch "$CHANGELOG"
+
+# Update the changelog
+  devbox run -q git-cliff \
+      --unreleased \
+      --tag "$GIT_TAG" \
+      --prepend "$CHANGELOG" \
+      --include-path "$IMAGE_PATH/**"
+git add "$CHANGELOG"
+if ! devbox run -q make run-hooks > /dev/null; then
+  git add "$CHANGELOG"
+  echo "Pre-commit hooks made changes, continuing..."
 fi
+git commit -m "chore: update "$CHANGELOG""
+
+echo "Creating git tag: $GIT_TAG"
+git tag "$GIT_TAG" -m "Tag $GIT_TAG"
+
+echo ""
+echo "✅ Updated $CHANGELOG"
+echo "✅ Tagged $NEXT_VERSION"
+echo "🚀 Push upstream to publish this version"
+echo ""

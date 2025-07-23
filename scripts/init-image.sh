@@ -22,6 +22,7 @@ IMAGE_PATH="$1"
 VERSION="${2:-v0.1.0}"
 TAG_PREFIX=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/|-|g')
 IMAGE_NAME=$(echo "$TAG_PREFIX" | sed 's|-|/|g')
+CHANGELOG="CHANGELOG.md"
 
 # Validate that the path is a direct subdirectory of images/
 if [[ ! "$IMAGE_PATH" =~ ^images/[^/]+/?$ ]]; then
@@ -80,19 +81,22 @@ echo "Creating initial commit for $IMAGE_PATH"
 git add "$IMAGE_PATH/"
 git commit -m "feat: initialize $IMAGE_PATH"
 
-CHANGELOG="CHANGELOG.md"
 echo "Updating $CHANGELOG..."
 touch "$CHANGELOG"
 devbox run -q git-cliff \
     --unreleased \
     --prepend "$CHANGELOG" \
     --tag "$TAG_PREFIX-$VERSION" \
-    --include-path "$IMAGE_PATH/**/*"
+    --include-path "$IMAGE_PATH/**"
 git add "$CHANGELOG"
+if ! devbox run -q make run-hooks > /dev/null; then
+  git add "$CHANGELOG"
+  echo "Pre-commit hooks made changes, continuing..."
+fi
 git commit -m "chore: update "$CHANGELOG""
 
 echo "Creating git tag: $TAG_PREFIX-$VERSION"
-git tag "$TAG_PREFIX-$VERSION" -m "Initialize $IMAGE_PATH"
+git tag "$TAG_PREFIX-$VERSION" -m "Tag $TAG_PREFIX-$VERSION"
 
 echo ""
 echo "✅ Initialized $IMAGE_PATH with tag $TAG_PREFIX-$VERSION"
