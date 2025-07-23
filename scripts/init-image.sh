@@ -80,13 +80,16 @@ echo "Creating initial commit for $IMAGE_PATH"
 git add "$IMAGE_PATH/"
 git commit -m "feat: initialize $IMAGE_PATH"
 
-echo "Updating CHANGELOG.md..."
+CHANGELOG="CHANGELOG.md"
+echo "Updating $CHANGELOG..."
+touch "$CHANGELOG"
 devbox run -q git-cliff \
     --unreleased \
-    --prepend CHANGELOG.md \
+    --prepend "$CHANGELOG" \
     --tag "$TAG_PREFIX-$VERSION" \
     --include-path "$IMAGE_PATH/**/*"
-git commit -m "chore: update CHANGELOG.md"
+git add "$CHANGELOG"
+git commit -m "chore: update "$CHANGELOG""
 
 echo "Creating git tag: $TAG_PREFIX-$VERSION"
 git tag "$TAG_PREFIX-$VERSION" -m "Initialize $IMAGE_PATH"
