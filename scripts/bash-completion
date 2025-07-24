@@ -11,7 +11,7 @@ _make_completion() {
     local image_dirs=$(find images -name Dockerfile -exec dirname {} \; 2>/dev/null | sort)
 
     # Targets that need image paths
-    local path_targets="build tag bootstrap preview-next-tag"
+    local path_targets="init-image release release-dry-run"
 
     case "${prev}" in
         build|tag|bootstrap|preview-next-tag)

@@ -63,6 +63,13 @@ FULL_IMAGE_NAME="${REGISTRY}/${REGISTRY_OWNER}/${IMAGE_NAME}"
 BRANCH_NAME="${BRANCH_NAME:-$(git rev-parse --abbrev-ref HEAD | sed 's|/|-|g')}"
 SHORT_SHA="${SHORT_SHA:-$(git rev-parse --short HEAD)}"
 
+# Ensure SHORT_SHA is at least 8 characters and truncate to 8 if longer
+if [ ${#SHORT_SHA} -lt 8 ]; then
+    echo "Error: SHORT_SHA '$SHORT_SHA' is less than 8 characters"
+    exit 1
+fi
+SHORT_SHA="${SHORT_SHA:0:8}"
+
 # Generate dev tags
 DEV_TAG="${FULL_IMAGE_NAME}:dev-${BRANCH_NAME}-${SHORT_SHA}"
 BRANCH_LATEST_TAG="${FULL_IMAGE_NAME}:dev-${BRANCH_NAME}-latest"

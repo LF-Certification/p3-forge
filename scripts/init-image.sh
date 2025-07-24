@@ -82,18 +82,20 @@ git add "$IMAGE_PATH/"
 git commit -m "feat: initialize $IMAGE_PATH"
 
 echo "Updating $CHANGELOG..."
-touch "$CHANGELOG"
+cat > "$CHANGELOG" << EOF
+# Changelog
+EOF
 devbox run -q git-cliff \
     --unreleased \
     --prepend "$CHANGELOG" \
     --tag "$TAG_PREFIX-$VERSION" \
     --include-path "$IMAGE_PATH/**"
 git add "$CHANGELOG"
-if ! devbox run -q make run-hooks > /dev/null; then
+if ! devbox run -q make runall-pre-commit > /dev/null; then
   git add "$CHANGELOG"
   echo "Pre-commit hooks made changes, continuing..."
 fi
-git commit -m "chore: update "$CHANGELOG""
+git commit -m "chore(release): release $TAG_PREFIX-$VERSION"
 
 echo "Creating git tag: $TAG_PREFIX-$VERSION"
 git tag "$TAG_PREFIX-$VERSION" -m "Tag $TAG_PREFIX-$VERSION"
@@ -101,5 +103,6 @@ git tag "$TAG_PREFIX-$VERSION" -m "Tag $TAG_PREFIX-$VERSION"
 echo ""
 echo "✅ Initialized $IMAGE_PATH with tag $TAG_PREFIX-$VERSION"
 echo "📝 Edit $IMAGE_PATH/Dockerfile to customize the image"
-echo "🚀 Use 'make tag $IMAGE_PATH' for future releases"
+echo "🚀 Use 'make release $IMAGE_PATH' for future releases"
+echo "🚀 Run 'git push origin --follow-tags' to publish this release"
 echo ""

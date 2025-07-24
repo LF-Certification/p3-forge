@@ -1,0 +1,86 @@
+#!/bin/bash
+set -euo pipefail
+
+# Create a release for the given image and update the changelog
+# Usage: ./scripts/create-release.sh [--dry-run] <image-path>
+
+# Parse arguments
+DRY_RUN=false
+IMAGE_PATH=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            if [ -z "$IMAGE_PATH" ]; then
+                IMAGE_PATH="$1"
+            else
+                echo "Error: Multiple image paths provided" >&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$IMAGE_PATH" ]; then
+    echo "Usage: $0 [--dry-run] <image-path>"
+    echo "Example: $0 images/alpine"
+    echo "Example: $0 --dry-run images/ui"
+    exit 1
+fi
+TAG_PREFIX=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/|-|g')
+NEXT_VERSION=$(git cliff --bumped-version --include-path "$IMAGE_PATH/**" --tag-pattern "$TAG_PREFIX-v*")
+if [ -z "$NEXT_VERSION" ]; then
+    echo "No changes detected for $IMAGE_PATH since last release"
+    exit 1
+fi
+
+# If dry-run, just show the version and exit
+if [ "$DRY_RUN" = true ]; then
+    echo "$NEXT_VERSION"
+    exit 0
+fi
+
+GIT_TAG="$NEXT_VERSION"
+CHANGELOG="$IMAGE_PATH/CHANGELOG.md"
+
+# Check if directory exists
+if [ ! -d "$IMAGE_PATH" ]; then
+    echo "Error: Directory $IMAGE_PATH does not exist"
+    exit 1
+fi
+
+# Check if there are any uncommitted changes, fail if so
+if ! git diff-index --quiet HEAD --; then
+    echo "Error: There are uncommitted changes. Please commit or stash them before releasing."
+    exit 1
+fi
+
+# Update the changelog
+devbox run -q git-cliff \
+  --tag "$GIT_TAG" \
+  --include-path "$IMAGE_PATH/**" \
+  --output "$CHANGELOG"
+git add "$CHANGELOG"
+if ! devbox run -q make runall-pre-commit > /dev/null; then
+  git add "$CHANGELOG"
+  echo "Pre-commit hooks made changes, continuing..."
+fi
+git commit -m "chore(release): release $NEXT_VERSION"
+
+echo "Creating git tag: $GIT_TAG"
+git tag "$GIT_TAG" -m "Release $GIT_TAG"
+
+echo ""
+echo "✅ Updated $CHANGELOG"
+echo "✅ Created git tag $NEXT_VERSION"
+echo "🚀 Run 'git push origin --follow-tags' to publish this release"
+echo ""

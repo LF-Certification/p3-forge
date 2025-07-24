@@ -1,0 +1,157 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - '*-v*.*.*'  # Matches namespaced tags like alpine-v1.0.0, ui-v2.1.3
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_USER: ${{ github.actor }}
+  REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  parse-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      image-name: ${{ steps.parse.outputs.image-name }}
+      image-path: ${{ steps.parse.outputs.image-path }}
+      version: ${{ steps.parse.outputs.version }}
+      major: ${{ steps.parse.outputs.major }}
+      minor: ${{ steps.parse.outputs.minor }}
+      patch: ${{ steps.parse.outputs.patch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.13.0
+        with:
+          enable-cache: "true"
+          devbox-version: "0.14.2"
+
+      - name: Parse release tag
+        id: parse
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          OUTPUT=$(devbox run -- make ci-parse-tag TAG_NAME="$TAG_NAME")
+          echo "$OUTPUT"
+
+          # Extract values from make output and set GitHub outputs
+          echo "$OUTPUT" | grep -E '^(image-name|image-path|version|major|minor|patch)=' >> $GITHUB_OUTPUT
+
+  validate-image:
+    runs-on: ubuntu-latest
+    needs: parse-tag
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.13.0
+        with:
+          enable-cache: "true"
+          devbox-version: "0.14.2"
+
+      - name: Validate image directory exists
+        run: |
+          devbox run -- make ci-validate-image IMAGE_PATH="${{ needs.parse-tag.outputs.image-path }}"
+
+  check-latest-version:
+    runs-on: ubuntu-latest
+    needs: [parse-tag, validate-image]
+    outputs:
+      is-latest-major: ${{ steps.check-latest.outputs.is-latest-major }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.13.0
+        with:
+          enable-cache: "true"
+          devbox-version: "0.14.2"
+
+      - name: Check if this is the latest major version
+        id: check-latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OUTPUT=$(devbox run -- make ci-check-latest-version \
+            CURRENT_MAJOR="${{ needs.parse-tag.outputs.major }}" \
+            IMAGE_NAME="${{ needs.parse-tag.outputs.image-name }}" \
+            GITHUB_REPOSITORY="${{ github.repository }}")
+          echo "$OUTPUT"
+
+          # Extract is-latest-major value and set GitHub output
+          echo "$OUTPUT" | grep -E '^is-latest-major=' >> $GITHUB_OUTPUT
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: [parse-tag, validate-image, check-latest-version]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.13.0
+        with:
+          enable-cache: "true"
+          devbox-version: "0.14.2"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ needs.parse-tag.outputs.image-name }}
+          tags: |
+            # Specific version tag (immutable)
+            type=raw,value=${{ needs.parse-tag.outputs.version }}
+            # Minor version tag (e.g., v1.0)
+            type=raw,value=v${{ needs.parse-tag.outputs.major }}.${{ needs.parse-tag.outputs.minor }}
+            # Major version tag (e.g., v1)
+            type=raw,value=v${{ needs.parse-tag.outputs.major }}
+            # Latest tag (only if this is the latest major version)
+            type=raw,value=latest,enable=${{ needs.check-latest-version.outputs.is-latest-major == 'true' }}
+          labels: |
+            org.opencontainers.image.title=${{ needs.parse-tag.outputs.image-name }}
+            org.opencontainers.image.version=${{ needs.parse-tag.outputs.version }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push container image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ needs.parse-tag.outputs.image-path }}
+          file: ${{ needs.parse-tag.outputs.image-path }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Output build summary
+        run: |
+          devbox run -- make ci-build-summary \
+            IMAGE_NAME="${{ needs.parse-tag.outputs.image-name }}" \
+            IMAGE_PATH="${{ needs.parse-tag.outputs.image-path }}" \
+            VERSION="${{ needs.parse-tag.outputs.version }}" \
+            GIT_TAG="${{ github.ref_name }}" \
+            GIT_SHA="${{ github.sha }}" \
+            IS_LATEST_MAJOR="${{ needs.check-latest-version.outputs.is-latest-major }}" \
+            DOCKER_TAGS="${{ steps.meta.outputs.tags }}" \
+            DOCKER_LABELS="${{ steps.meta.outputs.labels }}"

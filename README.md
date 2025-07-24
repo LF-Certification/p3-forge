@@ -31,11 +31,11 @@ Container image build system with automated semantic versioning for sandbox envi
 3. **Enable enhanced bash completion (optional):**
    ```bash
    # Source the completion script for tab completion on make targets and image paths
-   source scripts/bash_completion
+   source scripts/bash-completion
 
    # Now you can use tab completion:
    make build [TAB]      # Shows available image paths
-   make tag [TAB]        # Shows available image paths
+   make release [TAB]    # Shows available image paths
    ```
 
 4. **View available commands:**
@@ -55,26 +55,22 @@ make init-image images/name v0.1.0
 make init-image images/ubuntu v0.1.0
 ```
 
-### Building and Releasing
+Note: the initial version is optional. If you do not provide one, v0.1.0 will be used.
+
+### Creating a Release
 
 ```bash
-# Build an image locally
-make build images/alpine
-
-# Or use convenient dynamic targets
-make build-alpine
-
 # Preview next version (based on conventional commits)
-make preview-next-tag images/alpine
+make release-dry-run images/alpine
 
 # Or use dynamic target
-make preview-alpine
+make release-dry-run-alpine
 
-# Create a semantic version tag
-make tag images/alpine
+# Create a semantic version release
+make release images/alpine
 
 # Or use dynamic target
-make tag-alpine
+make release-alpine
 ```
 
 ### Development
@@ -84,10 +80,19 @@ make tag-alpine
 make list-dynamic-targets
 
 # Check what version would be released next
-make preview-next-tag images/ui
+make release-dry-run images/ui
 
 # Or use dynamic target
-make preview-ui
+make release-dry-run-ui
+
+# View git commit history for an image
+make commit-graph images/alpine
+
+# Or use dynamic target
+make commit-graph-alpine
+
+# Run all pre-commit hooks on all files
+make runall-pre-commit
 ```
 
 ## Image Structure
@@ -99,7 +104,6 @@ images/
 ├── alpine/         # Alpine Linux base image
 ├── ubuntu/         # Ubuntu base image
 ├── ui/             # UI application
-├── api/            # API service
 ├── node/           # Node.js runtime
 ├── nginx/          # Nginx web server
 └── redis/          # Redis database
@@ -145,16 +149,6 @@ git commit -m "feat(alpine)!: upgrade to Alpine 3.20
 BREAKING CHANGE: requires new base image configuration"
 ```
 
-### Image Tags
-
-Released images include multiple tags for flexibility:
-- `:latest` - Most recent release
-- `:v1.2.3` - Exact semantic version
-- `:v1.2` - Minor version family
-- `:v1` - Major version family
-
-See [`.github/workflows/README.md`](.github/workflows/README.md) for complete CI/CD documentation.
-
 ## Examples
 
 ### Example: Adding a New Base Image
@@ -170,11 +164,11 @@ vim images/debian/Dockerfile
 git add images/debian/
 git commit -m "feat(debian): add initial debian base image"
 
-# 4. Build and test
-make build images/debian
+# 4. Preview the release
+make release-dry-run images/debian
 
-# 5. Create tag
-make tag images/debian
+# 5. Create release
+make release images/debian
 ```
 
 ### Example: Updating an Existing Image
@@ -188,8 +182,8 @@ git add images/alpine/Dockerfile
 git commit -m "fix(alpine): update security patches"
 
 # 3. Preview version
-make preview-next-tag images/alpine
+make release-dry-run images/alpine
 
-# 4. Create tag
-make tag images/alpine
+# 4. Create release
+make release images/alpine
 ```

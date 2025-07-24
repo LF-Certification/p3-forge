@@ -57,7 +57,7 @@ This repository uses **Conventional Commits** and **git-cliff** for automated se
 
 ### Namespacing: Git Tags vs Docker Images
 
-**Git tags** are namespaced by image name to avoid collisions in multi-image repositories:
+**Git tags** are namespaced by image name to avoid collisions between image directories:
 - `alpine-v1.0.0` - Git tag for alpine image
 - `ui-v1.2.3` - Git tag for UI image
 
@@ -67,9 +67,10 @@ This repository uses **Conventional Commits** and **git-cliff** for automated se
 
 ### Example Workflow
 1. Make changes to `images/ui/`
-2. Commit: `feat(ui): add new iframe security headers`
-3. Run: `make tag images/ui`
-4. Result:
+2. Commit: `feat: add new iframe security headers`
+3. Preview: `make release-dry-run images/ui` (shows next version will be v1.3.0)
+4. Release: `make release images/ui`
+5. Result:
    - Creates git tag: `ui-v1.3.0`
    - CI builds: `ghcr.io/lf-certification/ui:v1.3.0`
    - Also tagged: `ui:v1.3`, `ui:v1`, `ui:latest`
@@ -77,12 +78,13 @@ This repository uses **Conventional Commits** and **git-cliff** for automated se
 ### Make Commands
 ```bash
 # Path-based commands (works with any image)
-make build images/alpine                # Build specific image
-make tag images/alpine                  # Creates alpine-vX.Y.Z tag
-make tag images/ui                      # Creates ui-vX.Y.Z tag
-make preview-next-tag images/alpine     # Preview next version
+make release images/alpine              # Creates alpine-vX.Y.Z release
+make release images/ui                  # Creates ui-vX.Y.Z release
+make release-dry-run images/alpine      # Preview next version
 
-# Dynamic targets
+# Dynamic targets (auto-generated for each image)
+make release-alpine                     # Creates alpine-vX.Y.Z release
+make release-dry-run-alpine             # Preview alpine next version
 make list-dynamic-targets               # Show all available dynamic targets
 ```
 
@@ -109,6 +111,14 @@ Each dev build is tagged with:
 **Example**: Push to `feature/new-auth` affecting `images/ui/` creates:
 - `ghcr.io/lf-certification/ui:dev-feature-new-auth-abc1234`
 - `ghcr.io/lf-certification/ui:dev-feature-new-auth-latest`
+
+### Dev Build Retention Policy
+
+Dev builds are automatically cleaned up to prevent registry bloat:
+- **Retention Period**: 14 days from creation
+- **Scope**: All dev build tags (`dev-*`) are subject to cleanup
+- **Schedule**: Daily at 00:00 UTC
+- **Exception**: `dev-latest` tag is preserved as long as main branch has recent activity
 
 ## Consumer Usage
 

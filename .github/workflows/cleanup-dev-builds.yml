@@ -1,0 +1,84 @@
+name: Cleanup Dev Builds
+
+on:
+  schedule:
+    # Daily cleanup at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # Allow manual triggering for testing
+    inputs:
+      dry_run:
+        description: 'Perform a dry run (show what would be deleted without actually deleting)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_OWNER: ${{ github.repository_owner }}
+
+jobs:
+  get-images:
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.get-images.outputs.images }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.13.0
+        with:
+          enable-cache: "true"
+          devbox-version: "0.14.2"
+
+      - name: Get list of images
+        id: get-images
+        run: |
+          # Get all image directories from the repository
+          IMAGES=$(devbox run -- find images/ -maxdepth 1 -type d -not -path images/ | sed 's/images\///' | jq -R -s -c 'split("\n")[:-1]')
+          echo "images=$IMAGES" >> $GITHUB_OUTPUT
+
+  cleanup-dev-builds:
+    runs-on: ubuntu-latest
+    needs: get-images
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        image: ${{ fromJson(needs.get-images.outputs.images) }}
+    steps:
+      - name: Cleanup dev builds
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          package: ${{ matrix.image }}
+          tags: 'dev-*'
+          exclude-tags: 'dev-latest'
+          keep-n-tagged: 0
+          older-than: '14 days'
+          # Access inputs using github.event.inputs for workflow_dispatch
+          # triggered workflows
+          dry-run: ${{ github.event.inputs.dry_run || false }}
+        continue-on-error: true
+
+  output-summary:
+    runs-on: ubuntu-latest
+    needs: [get-images, cleanup-dev-builds]
+    if: always()
+    steps:
+      - name: Output cleanup summary
+        run: |
+          echo "## 🧹 Dev Build Cleanup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          # Access inputs using github.event.inputs for workflow_dispatch triggered workflows
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "**Mode:** Dry run (no actual deletions performed)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode:** Live cleanup" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "**Retention Policy:** 14 days" >> $GITHUB_STEP_SUMMARY
+          echo "**Scope:** All \`dev-*\` tags older than 14 days" >> $GITHUB_STEP_SUMMARY
+          echo "**Preserved:** \`dev-latest\` tags" >> $GITHUB_STEP_SUMMARY
+          echo "**Images Processed:** $(echo '${{ needs.get-images.outputs.images }}' | jq -r 'length')" >> $GITHUB_STEP_SUMMARY
