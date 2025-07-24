@@ -22,7 +22,7 @@ IMAGE_PATH="$1"
 VERSION="${2:-v0.1.0}"
 TAG_PREFIX=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/|-|g')
 IMAGE_NAME=$(echo "$TAG_PREFIX" | sed 's|-|/|g')
-CHANGELOG="CHANGELOG.md"
+CHANGELOG="$IMAGE_PATH/CHANGELOG.md"
 
 # Validate that the path is a direct subdirectory of images/
 if [[ ! "$IMAGE_PATH" =~ ^images/[^/]+/?$ ]]; then

@@ -26,7 +26,7 @@ if [ -z "$NEXT_VERSION" ]; then
     exit 1
 fi
 GIT_TAG="$NEXT_VERSION"
-CHANGELOG="CHANGELOG.md"
+CHANGELOG="$IMAGE_PATH/CHANGELOG.md"
 
 # Check if directory exists
 if [ ! -d "$IMAGE_PATH" ]; then
