@@ -1,0 +1,62 @@
+# ui/dev/docker-compose.yml
+version: "3.8"
+
+services:
+  lab-ui:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ../lab-ui/dist:/usr/share/caddy/dist
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./config.json:/usr/share/caddy/config.json
+    depends_on:
+      - ttyd
+      - ttyd2
+      - code-server
+    networks:
+      - lab-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  ttyd:
+    image: tsl0922/ttyd:latest
+    command: ["ttyd", "-t", "theme=dark", "--writable", "-i", "0.0.0.0", "bash"]
+    restart: always
+    ports:
+      - "7681:7681"
+    networks:
+      - lab-network
+
+  ttyd2:
+    image: tsl0922/ttyd:latest
+    command: ["ttyd", "-t", "theme=dark", "--writable", "-i", "0.0.0.0", "bash"]
+    restart: always
+    ports:
+      - "7682:7681"
+    networks:
+      - lab-network
+
+  code-server:
+    image: codercom/code-server:latest
+    environment:
+      - PASSWORD=password123
+      - DOCKER_USER=coder
+    command: ["--auth=none", "--bind-addr=0.0.0.0:8080"]
+    restart: always
+    volumes:
+      - code-server-data:/home/coder/project
+    ports:
+      - "8080:8080"
+    networks:
+      - lab-network
+
+volumes:
+  code-server-data:
+
+networks:
+  lab-network:
+    driver: bridge

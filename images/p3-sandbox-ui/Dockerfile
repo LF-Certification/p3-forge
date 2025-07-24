@@ -1,18 +1,8 @@
-# Basic Dockerfile - customize as needed
-FROM alpine:3.19
-# OCI labels for package linking and metadata
-LABEL org.opencontainers.image.source="https://github.com/lf-certification/sandbox-images"
-LABEL org.opencontainers.image.title="p3-sandbox-ui"
-LABEL org.opencontainers.image.description="Container image for p3/sandbox/ui"
-
-RUN apk update && \
-    apk add --no-cache ca-certificates && \
-    rm -rf /var/cache/apk/*
-
-RUN addgroup -g 1001 appuser && \
-    adduser -D -u 1001 -G appuser appuser
-
-USER appuser
-WORKDIR /app
-
-CMD ["/bin/sh"]
+FROM caddy:2-alpine
+LABEL org.opencontainers.image.source="https://github.com/lf-certification/lab-images"
+RUN mkdir -p /usr/share/caddy/dist /usr/share/caddy/config
+COPY lab-ui/dist/ /usr/share/caddy/dist/
+COPY dev/config.json /usr/share/caddy/config.json
+COPY dev/Caddyfile /etc/caddy/Caddyfile
+EXPOSE 80
+WORKDIR /usr/share/caddy
