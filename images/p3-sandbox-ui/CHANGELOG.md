@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-ui-v1.1.1] - 2025-07-24
+
+### 🐛 Bug Fixes
+
+- Remove broken UI code
+
 ## [p3-sandbox-ui-v1.1.0] - 2025-07-24
 
 ### 🚀 Features
