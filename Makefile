@@ -63,9 +63,12 @@ release-dry-run: ## Show next release version for an image (usage: make release-
 release-dry-run-internal:
 	@devbox run --quiet -- ./scripts/create-release.sh --dry-run "$(IMAGE_PATH)"
 
-.PHONY: runall-pre-commit
-runall-pre-commit: ## Run all pre-commit hooks on all files
+.PHONY: lint
+lint: ## Run all linting tools against the source code
 	pre-commit run --all-files --hook-stage pre-commit
+
+.PHONY: runall-pre-commit
+runall-pre-commit: lint # DEPRECATED: Use make lint instead
 
 .PHONY: commit-graph
 commit-graph: ## Show git commit graph for an image path (usage: make commit-graph <path>)

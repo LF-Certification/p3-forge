@@ -30,6 +30,10 @@ jobs:
           enable-cache: "true"
           devbox-version: "0.14.2"
 
+      - name: Run linting
+        run: |
+          devbox run -- make lint
+
       - name: Detect changed images
         id: changes
         env:
