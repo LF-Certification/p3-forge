@@ -16,6 +16,9 @@ RUN make build
 # Final stage
 FROM caddy:2-alpine
 
+# Install perl for reliable text substitution
+RUN apk add --no-cache perl
+
 # Create necessary directories
 RUN mkdir -p /usr/share/caddy/dist /usr/share/caddy/config
 
@@ -26,5 +29,11 @@ COPY --from=builder /build/lab-ui/dist/ /usr/share/caddy/dist/
 COPY dev/config.json /usr/share/caddy/config.json
 COPY dev/Caddyfile /etc/caddy/Caddyfile
 
+# Copy and setup entrypoint script
+COPY scripts/ui-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
 WORKDIR /usr/share/caddy
+
+ENTRYPOINT ["/entrypoint.sh"]

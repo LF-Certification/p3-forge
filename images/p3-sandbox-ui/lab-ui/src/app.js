@@ -29,19 +29,37 @@ async function initializeLabUI() {
 }
 
 /**
- * Fetches the configuration from the server
+ * Fetches the configuration from inline script or falls back to server
  * @returns {Promise<Object>} The configuration object
  */
 async function fetchConfiguration() {
-  const response = await fetch(
-    new URL("config.json", window.location.href).href,
-  );
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch config: ${response.status} ${response.statusText}`,
-    );
+  // First try to get configuration from inline script
+  const configElement = document.getElementById('ui-config');
+  if (configElement) {
+    try {
+      const configStr = configElement.textContent.trim();
+      if (configStr && configStr !== 'UI_CONFIG_PLACEHOLDER') {
+        return JSON.parse(configStr);
+      }
+    } catch (error) {
+      console.error("Error parsing inline configuration:", error);
+    }
   }
-  return response.json();
+
+  // Fall back to fetching from server (for backward compatibility)
+  try {
+    const response = await fetch(
+      new URL("config.json", window.location.href).href,
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch config: ${response.status} ${response.statusText}`,
+      );
+    }
+    return response.json();
+  } catch (error) {
+    throw new Error(`Configuration not available: ${error.message}`);
+  }
 }
 
 /**
