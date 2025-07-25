@@ -29,18 +29,14 @@ async function initializeLabUI() {
 }
 
 /**
- * Fetches the configuration from inline script or falls back to server
+ * Fetches the configuration from inline variable or falls back to server
  * @returns {Promise<Object>} The configuration object
  */
 async function fetchConfiguration() {
-  // First try to get configuration from inline script
-  const configElement = document.getElementById('ui-config');
-  if (configElement) {
+  // First try to get configuration from inline variable
+  if (typeof configStr !== 'undefined' && configStr !== 'UI_CONFIG_PLACEHOLDER') {
     try {
-      const configStr = configElement.textContent.trim();
-      if (configStr && configStr !== 'UI_CONFIG_PLACEHOLDER') {
-        return JSON.parse(configStr);
-      }
+      return JSON.parse(configStr);
     } catch (error) {
       console.error("Error parsing inline configuration:", error);
     }
