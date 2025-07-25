@@ -17,17 +17,18 @@ The UI reads its configuration from the `UI_CONFIG` environment variable, which 
 
 ```json
 {
+  "config": {
+    "version": "dev-main-6b26377",
+    "defaultTool": "terminal1"
+  },
   "tools": [
     {
-      "id": "terminal",
-      "title": "Terminal 1",
-      "url": "/terminal/"
+      "name": "browser1",
+      "url": "https://browser1-target-sandbox.sagad.d.lf-labs.org/"
     },
     {
-      "id": "vscode",
-      "title": "VS Code",
-      "url": "/vscode/",
-      "default": true
+      "name": "terminal1",
+      "url": "https://target-sandbox.sagad.d.lf-labs.org/159fe0b1/tools/terminal1/"
     }
   ]
 }
@@ -35,11 +36,14 @@ The UI reads its configuration from the `UI_CONFIG` environment variable, which 
 
 ### Configuration Properties
 
+- `config`: Configuration metadata
+  - `version`: Build information of the UI
+  - `defaultTool`: Specifies which tool the UI should display on first load
 - `tools`: Array of tool configurations
-  - `id`: Unique identifier for the tool (required)
-  - `title`: Display name for the tab (required)
-  - `url`: URL to load in the iframe (required)
-  - `default`: Boolean indicating if this tool should be active initially (optional)
+  - `name`: Nme as specified in the Sandbox spec
+  - `url`: URL to load in the iframe
+
+**Note**: The UI automatically converts tool names to human-readable titles (e.g., "terminal1" becomes "Terminal 1", "browser1" becomes "Browser 1").
 
 If no `UI_CONFIG` environment variable is provided, a default configuration with a single terminal will be used.
 
@@ -77,7 +81,7 @@ Starts the complete environment with terminals and VS Code services at http://lo
 ```bash
 docker build -t ui-test .
 docker run --rm -p 8080:80 \
-  -e 'UI_CONFIG={"tools": [{"id": "vscode", "title": "VS Code", "url": "/vscode/", "default": true}]}' \
+  -e 'UI_CONFIG={"config": {"defaultTool": "vscode"}, "tools": [{"name": "vscode", "url": "/vscode/"}]}' \
   ui-test
 ```
 

@@ -33,29 +33,76 @@ async function initializeLabUI() {
  * @returns {Promise<Object>} The configuration object
  */
 async function fetchConfiguration() {
+  let rawConfig;
+
   // First try to get configuration from inline variable
   if (typeof configStr !== 'undefined' && configStr !== 'UI_CONFIG_PLACEHOLDER') {
     try {
-      return JSON.parse(configStr);
+      rawConfig = JSON.parse(configStr);
     } catch (error) {
       console.error("Error parsing inline configuration:", error);
     }
   }
 
   // Fall back to fetching from server (for backward compatibility)
-  try {
-    const response = await fetch(
-      new URL("config.json", window.location.href).href,
-    );
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch config: ${response.status} ${response.statusText}`,
+  if (!rawConfig) {
+    try {
+      const response = await fetch(
+        new URL("config.json", window.location.href).href,
       );
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch config: ${response.status} ${response.statusText}`,
+        );
+      }
+      rawConfig = await response.json();
+    } catch (error) {
+      throw new Error(`Configuration not available: ${error.message}`);
     }
-    return response.json();
-  } catch (error) {
-    throw new Error(`Configuration not available: ${error.message}`);
   }
+
+  // Transform the new config structure to the expected format
+  return transformConfig(rawConfig);
+}
+
+/**
+ * Transforms the new config structure to the expected format
+ * @param {Object} rawConfig - The raw configuration object
+ * @returns {Object} The transformed configuration object
+ */
+function transformConfig(rawConfig) {
+  // If it's already in the old format, return as-is
+  if (rawConfig.tools && !rawConfig.config) {
+    return rawConfig;
+  }
+
+  // Transform new format to old format
+  const transformed = {
+    tools: rawConfig.tools.map(tool => ({
+      id: tool.name,
+      title: formatToolTitle(tool.name),
+      url: tool.url,
+      default: tool.name === rawConfig.config?.defaultTool
+    }))
+  };
+
+  return transformed;
+}
+
+/**
+ * Formats a tool name into a human-readable title
+ * @param {string} name - The tool name
+ * @returns {string} The formatted title
+ */
+function formatToolTitle(name) {
+  // Convert camelCase or snake_case to Title Case
+  return name
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase to space
+    .replace(/[_-]/g, ' ') // underscores/hyphens to spaces
+    .replace(/\b\w/g, l => l.toUpperCase()) // capitalize first letter of each word
+    .replace(/\d+/g, match => ` ${match}`) // add space before numbers
+    .replace(/\s+/g, ' ') // collapse multiple spaces
+    .trim();
 }
 
 /**
@@ -307,13 +354,16 @@ function startConfigPolling() {
  * @param {Object} latestConfig - The latest configuration from the server
  */
 function checkForNewTools(latestConfig) {
+  // Transform the config first
+  const transformedConfig = transformConfig(latestConfig);
+
   // Get IDs of existing tools
   const existingToolIds = Array.from(
     document.querySelectorAll(".nav-pills .nav-item"),
   ).map((tab) => tab.id.replace("-tab", ""));
 
   // Find tools that don't already exist in the UI
-  const newTools = latestConfig.tools.filter(
+  const newTools = transformedConfig.tools.filter(
     (tool) => !existingToolIds.includes(tool.id),
   );
 

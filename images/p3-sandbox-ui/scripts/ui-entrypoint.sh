@@ -5,7 +5,7 @@
 
 if [ -z "$UI_CONFIG" ]; then
     echo "Warning: UI_CONFIG environment variable is not set, using default configuration"
-    UI_CONFIG='{"tools": [{"id": "terminal", "title": "Terminal", "url": "/terminal/", "default": true}]}'
+    UI_CONFIG='{"config": {"version": "default", "defaultTool": "terminal"}, "tools": [{"name": "terminal", "url": "/terminal/"}]}'
 fi
 
 echo "Injecting UI configuration into HTML template..."
