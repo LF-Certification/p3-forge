@@ -20,3 +20,6 @@ jobs:
       - name: Run linting
         run: |
           devbox run -- make lint
+
+  pr-title-lint:
+    uses: LF-Certification/reusable-github-workflows/.github/workflows/pr-title-lint.yml@v0
