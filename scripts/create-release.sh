@@ -43,9 +43,17 @@ if [ -z "$NEXT_VERSION" ]; then
     exit 1
 fi
 
-# If dry-run, just show the version and exit
+# If dry-run, show the version and changelog preview
 if [ "$DRY_RUN" = true ]; then
-    echo "$NEXT_VERSION"
+    echo "Version: $NEXT_VERSION"
+    echo ""
+    echo "Changelog preview:"
+    echo "=================="
+    devbox run -q git-cliff \
+      --tag "$NEXT_VERSION" \
+      --include-path "$IMAGE_PATH/**" \
+      --unreleased \
+      --output -
     exit 0
 fi
 
