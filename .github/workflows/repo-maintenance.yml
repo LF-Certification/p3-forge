@@ -1,14 +1,13 @@
-name: Cleanup Dev Builds
+name: Repo Maintenance
 
 on:
   schedule:
-    # Daily cleanup at 00:00 UTC
     - cron: '0 0 * * *'
   workflow_dispatch:
     # Allow manual triggering for testing
     inputs:
       dry_run:
-        description: 'Perform a dry run (show what would be deleted without actually deleting)'
+        description: 'Perform a dry run only'
         required: false
         default: false
         type: boolean
@@ -49,7 +48,7 @@ jobs:
       matrix:
         image: ${{ fromJson(needs.get-images.outputs.images) }}
     steps:
-      - name: Cleanup dev builds
+      - name: Clean up dev builds
         uses: dataaxiom/ghcr-cleanup-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -68,15 +67,15 @@ jobs:
     needs: [get-images, cleanup-dev-builds]
     if: always()
     steps:
-      - name: Output cleanup summary
+      - name: Output clean up summary
         run: |
-          echo "## 🧹 Dev Build Cleanup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧹 Dev Build Clean Up Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           # Access inputs using github.event.inputs for workflow_dispatch triggered workflows
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             echo "**Mode:** Dry run (no actual deletions performed)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "**Mode:** Live cleanup" >> $GITHUB_STEP_SUMMARY
+            echo "**Mode:** Live clean up" >> $GITHUB_STEP_SUMMARY
           fi
           echo "**Retention Policy:** 14 days" >> $GITHUB_STEP_SUMMARY
           echo "**Scope:** All \`dev-*\` tags older than 14 days" >> $GITHUB_STEP_SUMMARY
