@@ -16,9 +16,6 @@ RUN make build
 # Final stage
 FROM caddy:2-alpine
 
-# Install perl for reliable text substitution
-RUN apk add --no-cache perl
-
 # Create necessary directories
 RUN mkdir -p /usr/share/caddy/dist /usr/share/caddy/config
 
