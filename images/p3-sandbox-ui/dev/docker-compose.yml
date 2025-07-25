@@ -3,13 +3,12 @@ version: "3.8"
 
 services:
   lab-ui:
-    image: caddy:2-alpine
+    build: ..
     ports:
       - "80:80"
-    volumes:
-      - ../lab-ui/dist:/usr/share/caddy/dist
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./config.json:/usr/share/caddy/config.json
+    environment:
+      UI_CONFIG: >
+        {"tools": [{"id": "terminal", "title": "Terminal 1", "url": "/terminal/"}, {"id": "terminal2", "title": "Terminal 2", "url": "/terminal2/"}, {"id": "vscode", "title": "VS Code", "url": "/vscode/", "default": true}]}
     depends_on:
       - ttyd
       - ttyd2
