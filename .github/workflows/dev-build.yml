@@ -35,7 +35,6 @@ jobs:
         env:
           GITHUB_EVENT_BEFORE: ${{ github.event.before }}
         run: |
-          # Use the make target to detect changes
           RESULT=$(devbox run -- make ci-detect-changed-images-json)
 
           HAS_CHANGES=$(echo "$RESULT" | jq -r '.has_changes')

@@ -47,8 +47,8 @@ if [ -z "$CHANGED_FILES" ]; then
     exit 0
 fi
 
-# Extract unique image directories
-CHANGED_IMAGES=$(echo "$CHANGED_FILES" | xargs -I {} dirname {} | grep "^images/" | sort -u)
+# Extract unique image directories (top-level only)
+CHANGED_IMAGES=$(echo "$CHANGED_FILES" | sed 's|^images/\([^/]*\)/.*|images/\1|; s|^images/\([^/]*\)$|images/\1|' | grep "^images/" | sort -u)
 
 if [ "$OUTPUT_FORMAT" = "json" ]; then
     # Output JSON format for CI consumption
