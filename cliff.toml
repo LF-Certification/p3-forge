@@ -77,6 +77,7 @@ commit_parsers = [
     { message = "^style", group = "<!-- 5 -->🎨 Styling" },
     { message = "^test", group = "<!-- 6 -->🧪 Testing" },
     { message = "^chore: update .*/CHANGELOG.md$", skip = true},
+    { message = "^chore(\\([^)]+\\))?: (force a rebuild( of [a-zA-Z0-9-]+)?|provoke build)$", skip = true },
     { message = "^chore\\(changelog\\): update .*/CHANGELOG.md$", skip = true},
     { message = "^chore\\(release\\): release", skip = true},
     { message = "^chore\\(release\\): prepare for", skip = true },
