@@ -122,6 +122,46 @@ Each image directory contains:
 - `Dockerfile` - Container build instructions
 - `scripts/` - Supporting scripts and assets (optional)
 
+### Image Directory Standards
+
+To ensure compatibility with the build pipeline, all image directories must follow these standards:
+
+1. **Dockerfile as Build Entrypoint**
+   - The `Dockerfile` will always be the build entrypoint for the pipeline
+   - If the image requires complex build logic, use multi-stage Docker builds
+   - The pipeline expects to run `docker build .` from the image directory root
+
+2. **Self-Contained and Portable**
+   - Don't make assumptions about the directory name or location
+   - The image directory should be self-contained and build successfully regardless of:
+     - Directory name (e.g., `p3-sandbox-ui`, `ui`, `web-app`)
+     - Directory location (e.g., `images/ui/`, `containers/ui/`, `/tmp/ui/`)
+   - Use relative paths and discover the build context dynamically
+
+3. **No Repository Structure Assumptions**
+   - Don't make assumptions about the repository structure
+   - Repository organization may change without prior warning
+   - Avoid hardcoded paths that reference parent directories or specific repo layouts
+   - Use techniques like walking up the directory tree to find build markers (e.g., `Dockerfile`)
+
+**Example of Compliant Build Script:**
+```bash
+# ✅ Good: Find build root dynamically
+current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+build_root="$current_dir"
+while [[ "$build_root" != "/" ]]; do
+    if [[ -f "$build_root/Dockerfile" ]]; then
+        break
+    fi
+    build_root="$(dirname "$build_root")"
+done
+
+# ❌ Bad: Hardcoded assumptions
+path=$(git rev-parse --show-toplevel)/ui/lab-ui  # Assumes git repo and specific structure
+```
+
+These standards ensure that images remain portable and compatible with the automated build pipeline, regardless of how the repository structure evolves.
+
 ## Versioning
 
 This repository uses **git-tag based versioning** with:
