@@ -1,20 +1,21 @@
 {
+  "config": {
+    "version": "dev-test",
+    "defaultTool": "vscode",
+    "expiresAt": "2024-12-25T15:30:00Z"
+  },
   "tools": [
     {
-      "id": "terminal",
-      "title": "Terminal 1",
+      "name": "terminal",
       "url": "/terminal/"
     },
     {
-      "id": "terminal2",
-      "title": "Terminal 2",
+      "name": "terminal2",
       "url": "/terminal2/"
     },
     {
-      "id": "vscode",
-      "title": "VS Code",
-      "url": "/vscode/",
-      "default": true
+      "name": "vscode",
+      "url": "/vscode/"
     }
   ]
 }

@@ -71,9 +71,12 @@ async function fetchConfiguration() {
  * @returns {Object} The transformed configuration object
  */
 function transformConfig(rawConfig) {
-  // If it's already in the old format, return as-is
+  // If it's already in the old format, return as-is but preserve original
   if (rawConfig.tools && !rawConfig.config) {
-    return rawConfig;
+    return {
+      ...rawConfig,
+      originalConfig: rawConfig
+    };
   }
 
   // Transform new format to old format
@@ -83,7 +86,9 @@ function transformConfig(rawConfig) {
       title: formatToolTitle(tool.name),
       url: tool.url,
       default: tool.name === rawConfig.config?.defaultTool
-    }))
+    })),
+    // Preserve the original config for accessing expiresAt and other fields
+    originalConfig: rawConfig
   };
 
   return transformed;
@@ -444,53 +449,6 @@ function addNewToolsToUI(newTools) {
   });
 }
 
-/**
- * Extracts sandbox UUID from the current URL
- * @returns {string|null} The sandbox UUID or null if not found
- */
-function extractSandboxUUID() {
-  try {
-    const hostname = window.location.hostname;
-    const uuid = hostname.split(".")[0];
-    // Basic validation - UUID should be 36 characters with hyphens
-    if (uuid && uuid.length === 36 && uuid.includes("-")) {
-      return uuid;
-    }
-    return null;
-  } catch (error) {
-    console.error("Error extracting sandbox UUID:", error);
-    return null;
-  }
-}
-
-/**
- * Fetches sandbox expiration data from API with retry logic
- * @param {string} uuid - The sandbox UUID
- * @returns {Promise<Object|null>} The sandbox data or null if failed
- */
-async function fetchSandboxData(uuid) {
-  const apiUrl = `https://oqfx3p6il2.execute-api.us-west-2.amazonaws.com/staging1/v1/labs/${uuid}`;
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-        throw new Error(
-          `API request failed: ${response.status} ${response.statusText}`,
-        );
-      }
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error(`Sandbox API attempt ${attempt + 1} failed:`, error);
-      if (attempt === 2) {
-        // Last attempt failed
-        return null;
-      }
-    }
-  }
-  return null;
-}
 
 /**
  * Starts the countdown timer based on sandbox expiration
@@ -505,52 +463,61 @@ async function startCountdownTimer() {
   // Show loading state
   timerDisplay.textContent = "--:--";
 
-  // Extract sandbox UUID from URL
-  const sandboxUUID = extractSandboxUUID();
-  if (!sandboxUUID) {
-    console.error("Could not extract sandbox UUID from URL");
-    return;
-  }
+  try {
+    // Get the current configuration
+    const config = await fetchConfiguration();
 
-  // Fetch sandbox data
-  const sandboxData = await fetchSandboxData(sandboxUUID);
-  if (!sandboxData || !sandboxData.expires_at) {
-    console.error("Could not fetch sandbox expiration data");
-    return;
-  }
+    // Check if expiresAt is provided in config
+    if (!config.originalConfig?.config?.expiresAt) {
+      console.warn("No expiration time provided in config - hiding timer");
+      const timerContainer = document.getElementById("countdown-timer");
+      if (timerContainer) {
+        timerContainer.style.display = "none";
+      }
+      return;
+    }
 
-  // Parse expiration time
-  const expirationTime = new Date(sandboxData.expires_at);
-  if (isNaN(expirationTime.getTime())) {
-    console.error("Invalid expiration time format");
-    return;
-  }
+    // Parse expiration time (should be RFC3339 format)
+    const expirationTime = new Date(config.originalConfig.config.expiresAt);
+    if (isNaN(expirationTime.getTime())) {
+      console.error("Invalid expiration time format:", config.originalConfig.config.expiresAt);
+      return;
+    }
 
-  // Update timer every second
-  const intervalId = setInterval(() => {
+    // Update timer every second
+    const intervalId = setInterval(() => {
+      const now = new Date();
+      const timeRemaining = Math.max(
+        0,
+        Math.floor((expirationTime - now) / 1000),
+      );
+
+      updateTimerDisplay(timerDisplay, timeRemaining);
+      updateTimerStyling(timerDisplay, timeRemaining);
+
+      // Stop timer when expired
+      if (timeRemaining <= 0) {
+        clearInterval(intervalId);
+      }
+    }, 1000);
+
+    // Store interval ID for potential cleanup
+    window.countdownInterval = intervalId;
+
+    // Update immediately
     const now = new Date();
-    const timeRemaining = Math.max(
-      0,
-      Math.floor((expirationTime - now) / 1000),
-    );
-
+    const timeRemaining = Math.max(0, Math.floor((expirationTime - now) / 1000));
     updateTimerDisplay(timerDisplay, timeRemaining);
     updateTimerStyling(timerDisplay, timeRemaining);
 
-    // Stop timer when expired
-    if (timeRemaining <= 0) {
-      clearInterval(intervalId);
+  } catch (error) {
+    console.error("Error starting countdown timer:", error);
+    // Hide timer on error
+    const timerContainer = document.getElementById("countdown-timer");
+    if (timerContainer) {
+      timerContainer.style.display = "none";
     }
-  }, 1000);
-
-  // Store interval ID for potential cleanup
-  window.countdownInterval = intervalId;
-
-  // Update immediately
-  const now = new Date();
-  const timeRemaining = Math.max(0, Math.floor((expirationTime - now) / 1000));
-  updateTimerDisplay(timerDisplay, timeRemaining);
-  updateTimerStyling(timerDisplay, timeRemaining);
+  }
 }
 
 /**

@@ -19,7 +19,8 @@ The UI reads its configuration from the `UI_CONFIG` environment variable, which 
 {
   "config": {
     "version": "dev-main-6b26377",
-    "defaultTool": "terminal1"
+    "defaultTool": "terminal1",
+    "expiresAt": "2024-12-25T15:30:00Z"
   },
   "tools": [
     {
@@ -39,6 +40,7 @@ The UI reads its configuration from the `UI_CONFIG` environment variable, which 
 - `config`: Configuration metadata
   - `version`: Build information of the UI
   - `defaultTool`: Specifies which tool the UI should display on first load
+  - `expiresAt`: RFC3339-formatted timestamp when the sandbox expires
 - `tools`: Array of tool configurations
   - `name`: Nme as specified in the Sandbox spec
   - `url`: URL to load in the iframe
@@ -81,7 +83,7 @@ Starts the complete environment with terminals and VS Code services at http://lo
 ```bash
 docker build -t ui-test .
 docker run --rm -p 8080:80 \
-  -e 'UI_CONFIG={"config": {"defaultTool": "vscode"}, "tools": [{"name": "vscode", "url": "/vscode/"}]}' \
+  -e 'UI_CONFIG={"config": {"defaultTool": "vscode", "expiresAt": "2024-12-25T15:30:00Z"}, "tools": [{"name": "vscode", "url": "/vscode/"}]}' \
   ui-test
 ```
 
