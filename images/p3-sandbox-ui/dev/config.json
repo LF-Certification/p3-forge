@@ -1,0 +1,20 @@
+{
+  "tools": [
+    {
+      "id": "terminal",
+      "title": "Terminal 1",
+      "url": "/terminal/"
+    },
+    {
+      "id": "terminal2",
+      "title": "Terminal 2",
+      "url": "/terminal2/"
+    },
+    {
+      "id": "vscode",
+      "title": "VS Code",
+      "url": "/vscode/",
+      "default": true
+    }
+  ]
+}
