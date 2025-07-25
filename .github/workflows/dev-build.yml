@@ -96,10 +96,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ steps.extract.outputs.image-name }}
           tags: |
-            # Branch name tag
-            type=ref,event=branch
-            # Short SHA tag
-            type=sha,prefix={{branch}}-
+            # Dev branch-latest tag
+            type=ref,event=branch,prefix=dev-,suffix=-latest
+            # Dev branch-sha tag
+            type=sha,prefix=dev-{{branch}}-
+            # Dev-latest tag for main branch only
+            type=raw,value=dev-latest,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=${{ steps.extract.outputs.image-name }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

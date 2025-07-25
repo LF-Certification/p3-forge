@@ -122,9 +122,12 @@ Dev builds are automatically cleaned up to prevent registry bloat:
 
 ## Consumer Usage
 
-- Use `latest` for released versions (non-dev)
-- Use `dev-<branch>-latest` for testing specific branch changes
-- Use `dev-<branch>-<sha>` for reproducible dev builds
-- Use `vX` for production when you want automatic patch updates
+- Use `latest` for the latest released (non-dev) version
+- Use `vX` for production when you want automatic minor and patch updates
 - Use `vX.Y` when you want to pin to a specific minor version
 - Use `vX.Y.Z` for maximum stability and reproducibility
+
+The following are also available. However, take note of their limited avilability in the image repo as specified in the Dev Build Retention Policy above.
+
+- Use `dev-<branch>-latest` for testing the latest branch changes
+- Use `dev-<branch>-<sha>` for reproducible dev builds
