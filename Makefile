@@ -77,7 +77,62 @@ commit-graph: ## Show git commit graph for an image path (usage: make commit-gra
 	$(eval IMAGE_PATH := $(filter-out $@,$(MAKECMDGOALS)))
 	@git log --graph --oneline --decorate --color --format='%C(auto)%h %C(green)%as%C(auto) %C(dim)%an%C(auto)%d %s%C(reset)' -- "$(IMAGE_PATH)"
 
-##@ CI/CD
+## Dynamic Image Targets (for tab completion)
+
+# Extract image names from paths (e.g., images/alpine -> alpine)
+IMAGE_NAMES := $(notdir $(IMAGE_DIRS))
+
+# Define template for release targets
+define RELEASE_TEMPLATE
+release-$(1): ## Release $(1) image
+	@$$(MAKE) release-internal IMAGE_PATH=images/$(1)
+endef
+
+# Define template for release-dry-run targets
+define RELEASE_DRY_RUN_TEMPLATE
+release-dry-run-$(1): ## Dry run release for $(1) image
+	@$$(MAKE) release-dry-run-internal IMAGE_PATH=images/$(1)
+endef
+
+# Define template for commit-graph targets
+define COMMIT_GRAPH_TEMPLATE
+commit-graph-$(1): ## Show git commit graph for $(1) image
+	@git log --graph --oneline --decorate --color --format='%C(auto)%h %C(green)%as%C(auto) %C(dim)%an%C(auto)%d %s%C(reset)' -- images/$(1)
+endef
+
+# Generate dynamic release targets (e.g., release-alpine, release-ui)
+$(foreach name,$(IMAGE_NAMES),$(eval $(call RELEASE_TEMPLATE,$(name))))
+
+# Generate dynamic release-dry-run targets (e.g., release-dry-run-alpine, release-dry-run-ui)
+$(foreach name,$(IMAGE_NAMES),$(eval $(call RELEASE_DRY_RUN_TEMPLATE,$(name))))
+
+# Generate dynamic commit-graph targets (e.g., commit-graph-alpine, commit-graph-ui)
+$(foreach name,$(IMAGE_NAMES),$(eval $(call COMMIT_GRAPH_TEMPLATE,$(name))))
+
+# Mark all dynamic targets as PHONY
+.PHONY: $(addprefix release-,$(IMAGE_NAMES)) $(addprefix release-dry-run-,$(IMAGE_NAMES)) $(addprefix commit-graph-,$(IMAGE_NAMES))
+
+.PHONY: list-dynamic-targets
+list-dynamic-targets: ## List all dynamically generated targets
+	@echo "Dynamic release targets:"
+	@for name in $(IMAGE_NAMES); do \
+		echo "  release-$$name"; \
+	done
+	@echo
+	@echo "Dynamic release-dry-run targets:"
+	@for name in $(IMAGE_NAMES); do \
+		echo "  release-dry-run-$$name"; \
+	done
+	@echo
+	@echo "Dynamic commit-graph targets:"
+	@for name in $(IMAGE_NAMES); do \
+		echo "  commit-graph-$$name"; \
+	done
+
+%:
+	@:
+
+## CI/CD
 
 ## Detect which images have changed (usage: make ci-detect-changed-images [BASE_REF=origin/main])
 .PHONY: ci-detect-changed-images
@@ -177,56 +232,4 @@ ci-build-changed-dev-push:
 	for image in $$CHANGED_IMAGES; do \
 		echo "  $$image"; \
 		./scripts/ci/build-dev-image.sh "$$image" --push; \
-	done
-
-## Dynamic Image Targets (for tab completion)
-
-# Extract image names from paths (e.g., images/alpine -> alpine)
-IMAGE_NAMES := $(notdir $(IMAGE_DIRS))
-
-# Define template for release targets
-define RELEASE_TEMPLATE
-release-$(1): ## Release $(1) image
-	@$$(MAKE) release-internal IMAGE_PATH=images/$(1)
-endef
-
-# Define template for release-dry-run targets
-define RELEASE_DRY_RUN_TEMPLATE
-release-dry-run-$(1): ## Dry run release for $(1) image
-	@$$(MAKE) release-dry-run-internal IMAGE_PATH=images/$(1)
-endef
-
-# Define template for commit-graph targets
-define COMMIT_GRAPH_TEMPLATE
-commit-graph-$(1): ## Show git commit graph for $(1) image
-	@git log --graph --oneline --decorate --color --format='%C(auto)%h %C(green)%as%C(auto) %C(dim)%an%C(auto)%d %s%C(reset)' -- images/$(1)
-endef
-
-# Generate dynamic release targets (e.g., release-alpine, release-ui)
-$(foreach name,$(IMAGE_NAMES),$(eval $(call RELEASE_TEMPLATE,$(name))))
-
-# Generate dynamic release-dry-run targets (e.g., release-dry-run-alpine, release-dry-run-ui)
-$(foreach name,$(IMAGE_NAMES),$(eval $(call RELEASE_DRY_RUN_TEMPLATE,$(name))))
-
-# Generate dynamic commit-graph targets (e.g., commit-graph-alpine, commit-graph-ui)
-$(foreach name,$(IMAGE_NAMES),$(eval $(call COMMIT_GRAPH_TEMPLATE,$(name))))
-
-# Mark all dynamic targets as PHONY
-.PHONY: $(addprefix release-,$(IMAGE_NAMES)) $(addprefix release-dry-run-,$(IMAGE_NAMES)) $(addprefix commit-graph-,$(IMAGE_NAMES))
-
-.PHONY: list-dynamic-targets
-list-dynamic-targets: ## List all dynamically generated targets
-	@echo "Dynamic release targets:"
-	@for name in $(IMAGE_NAMES); do \
-		echo "  release-$$name"; \
-	done
-	@echo
-	@echo "Dynamic release-dry-run targets:"
-	@for name in $(IMAGE_NAMES); do \
-		echo "  release-dry-run-$$name"; \
-	done
-	@echo
-	@echo "Dynamic commit-graph targets:"
-	@for name in $(IMAGE_NAMES); do \
-		echo "  commit-graph-$$name"; \
 	done
