@@ -1,0 +1,22 @@
+name: PR Checks
+
+on:
+  pull_request:
+    # Run on all pull requests
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.13.0
+        with:
+          enable-cache: "true"
+          devbox-version: "0.14.2"
+
+      - name: Run linting
+        run: |
+          devbox run -- make lint

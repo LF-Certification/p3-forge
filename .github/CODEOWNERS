@@ -1,0 +1,37 @@
+# CODEOWNERS file for sandbox-images repository
+#
+# This file defines who can approve changes to different parts of the repository.
+# Files outside the images/ directory require team approval to prevent unauthorized
+# modifications to the build pipeline and infrastructure.
+#
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# REQUIRED BRANCH PROTECTION SETUP:
+# To fully protect this repository, configure these branch protection rules for 'main':
+#
+# 1. Require pull request reviews before merging:
+#    ✅ Required approving reviews: 1
+#    ✅ Require review from CODEOWNERS: ENABLE
+#    ✅ Dismiss stale reviews when new commits are pushed: ENABLE
+#
+# 2. Require status checks to pass before merging:
+#    ✅ Require branches to be up to date before merging: ENABLE
+#    ✅ Required status checks: lint (from dev-build workflow)
+#
+# 3. Require conversation resolution before merging: ENABLE
+#
+# This ensures infrastructure changes require platform-engineering approval while
+# allowing anyone to contribute to the images/ directory without restrictions.
+
+# Infrastructure and pipeline files - require team approval
+/.github/                @LF-Certification/platform-engineering
+/scripts/                @LF-Certification/platform-engineering
+/Makefile                @LF-Certification/platform-engineering
+/devbox.json             @LF-Certification/platform-engineering
+/devbox.lock             @LF-Certification/platform-engineering
+/cliff.toml              @LF-Certification/platform-engineering
+/.envrc                  @LF-Certification/platform-engineering
+/.pre-commit-config.yaml @LF-Certification/platform-engineering
+
+# Images directory - no restrictions, anyone can contribute
+# /images/               # Intentionally left blank for now
