@@ -1,12 +1,28 @@
 #!/usr/bin/env bash
 set -ex
 
-path=$(git rev-parse --show-toplevel)/ui/lab-ui
+# Find the image root by walking up until we find a Dockerfile
+current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+image_root="$current_dir"
+
+while [[ "$image_root" != "/" ]]; do
+    if [[ -f "$image_root/Dockerfile" ]]; then
+        break
+    fi
+    image_root="$(dirname "$image_root")"
+done
+
+if [[ ! -f "$image_root/Dockerfile" ]]; then
+    echo "Error: Could not find Dockerfile in parent directories"
+    exit 1
+fi
+
+path="$image_root/lab-ui"
 
 mkdir -p "$path"/{dist,build}
 
 # Render markdown instructions
-INSTRUCTIONS_MD="$(git rev-parse --show-toplevel)/ui/instructions.en.md"
+INSTRUCTIONS_MD="$image_root/instructions.en.md"
 INSTRUCTIONS_HTML="$path/build/instructions.html"
 
 # Check if instructions.en.md exists
