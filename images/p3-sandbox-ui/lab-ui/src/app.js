@@ -34,34 +34,25 @@ async function initializeLabUI() {
  */
 async function fetchConfiguration() {
   let rawConfig;
+  console.log("DEBUG: configStr before parsing:", configStr);
 
-  // First try to get configuration from inline variable
-  if (typeof configStr !== 'undefined' && configStr !== 'UI_CONFIG_PLACEHOLDER') {
-    try {
-      rawConfig = JSON.parse(configStr);
-    } catch (error) {
-      console.error("Error parsing inline configuration:", error);
-    }
-  }
-
-  // Fall back to fetching from server (for backward compatibility)
-  if (!rawConfig) {
-    try {
-      const response = await fetch(
-        new URL("config.json", window.location.href).href,
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch config: ${response.status} ${response.statusText}`,
-        );
-      }
-      rawConfig = await response.json();
-    } catch (error) {
-      throw new Error(`Configuration not available: ${error.message}`);
-    }
+  try {
+    rawConfig = JSON.parse(configStr);
+    console.log("DEBUG: rawConfig after parsing:", rawConfig);
+    console.log(
+      "DEBUG: rawConfig.config.expiresAt:",
+      rawConfig.config?.expiresAt,
+    );
+  } catch (error) {
+    console.error("Error parsing inline configuration:", error);
   }
 
   // Transform the new config structure to the expected format
+  console.log("DEBUG: rawConfig before transform:", rawConfig);
+  console.log(
+    "DEBUG: rawConfig.config.expiresAt before transform:",
+    rawConfig.config?.expiresAt,
+  );
   return transformConfig(rawConfig);
 }
 
@@ -75,20 +66,20 @@ function transformConfig(rawConfig) {
   if (rawConfig.tools && !rawConfig.config) {
     return {
       ...rawConfig,
-      originalConfig: rawConfig
+      originalConfig: rawConfig,
     };
   }
 
   // Transform new format to old format
   const transformed = {
-    tools: rawConfig.tools.map(tool => ({
+    tools: rawConfig.tools.map((tool) => ({
       id: tool.name,
       title: formatToolTitle(tool.name),
       url: tool.url,
-      default: tool.name === rawConfig.config?.defaultTool
+      default: tool.name === rawConfig.config?.defaultTool,
     })),
     // Preserve the original config for accessing expiresAt and other fields
-    originalConfig: rawConfig
+    originalConfig: rawConfig,
   };
 
   return transformed;
@@ -102,11 +93,11 @@ function transformConfig(rawConfig) {
 function formatToolTitle(name) {
   // Convert camelCase or snake_case to Title Case
   return name
-    .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase to space
-    .replace(/[_-]/g, ' ') // underscores/hyphens to spaces
-    .replace(/\b\w/g, l => l.toUpperCase()) // capitalize first letter of each word
-    .replace(/\d+/g, match => ` ${match}`) // add space before numbers
-    .replace(/\s+/g, ' ') // collapse multiple spaces
+    .replace(/([a-z])([A-Z])/g, "$1 $2") // camelCase to space
+    .replace(/[_-]/g, " ") // underscores/hyphens to spaces
+    .replace(/\b\w/g, (l) => l.toUpperCase()) // capitalize first letter of each word
+    .replace(/\d+/g, (match) => ` ${match}`) // add space before numbers
+    .replace(/\s+/g, " ") // collapse multiple spaces
     .trim();
 }
 
@@ -449,7 +440,6 @@ function addNewToolsToUI(newTools) {
   });
 }
 
-
 /**
  * Starts the countdown timer based on sandbox expiration
  */
@@ -471,7 +461,10 @@ async function startCountdownTimer() {
     console.log("Config object:", config);
     console.log("originalConfig:", config.originalConfig);
     console.log("config.config:", config.originalConfig?.config);
-    console.log("expiresAt:", config.originalConfig?.config?.expiresAt);
+    console.log(
+      "expiresAt raw string:",
+      config.originalConfig?.config?.expiresAt,
+    );
 
     // Check if expiresAt is provided in config
     if (!config.originalConfig?.config?.expiresAt) {
@@ -485,8 +478,14 @@ async function startCountdownTimer() {
 
     // Parse expiration time (should be RFC3339 format)
     const expirationTime = new Date(config.originalConfig.config.expiresAt);
+    console.log("expirationTime parsed:", expirationTime.toISOString());
+    console.log("expirationTime toString:", expirationTime.toString());
+
     if (isNaN(expirationTime.getTime())) {
-      console.error("Invalid expiration time format:", config.originalConfig.config.expiresAt);
+      console.error(
+        "Invalid expiration time format:",
+        config.originalConfig.config.expiresAt,
+      );
       return;
     }
 
@@ -512,10 +511,12 @@ async function startCountdownTimer() {
 
     // Update immediately
     const now = new Date();
-    const timeRemaining = Math.max(0, Math.floor((expirationTime - now) / 1000));
+    const timeRemaining = Math.max(
+      0,
+      Math.floor((expirationTime - now) / 1000),
+    );
     updateTimerDisplay(timerDisplay, timeRemaining);
     updateTimerStyling(timerDisplay, timeRemaining);
-
   } catch (error) {
     console.error("Error starting countdown timer:", error);
     // Hide timer on error
