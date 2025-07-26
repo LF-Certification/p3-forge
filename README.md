@@ -1,6 +1,6 @@
-# sandbox-images
+# P3 Sandbox Images
 
-Container image build system with automated semantic versioning for sandbox environments.
+Source files for images used with the P3 Sandbox Operator.
 
 ## Quick Start
 
