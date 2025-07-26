@@ -32,7 +32,7 @@ OUTPUT_FILE="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
     if [ -n "$DOCKER_TAGS" ]; then
         echo "### 📦 Published Tags:"
         echo "\`\`\`"
-        echo "$DOCKER_TAGS" | tr ',' '\n'
+        printf '%s\n' "$DOCKER_TAGS" | tr ',' '\n'
         echo "\`\`\`"
         echo ""
     fi
@@ -40,7 +40,7 @@ OUTPUT_FILE="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
     if [ -n "$DOCKER_LABELS" ]; then
         echo "### 🏷️ Container Labels:"
         echo "\`\`\`"
-        echo "$DOCKER_LABELS"
+        printf '%s\n' "$DOCKER_LABELS" | tr ',' '\n'
         echo "\`\`\`"
         echo ""
     fi
