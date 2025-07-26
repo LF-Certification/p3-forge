@@ -2,6 +2,10 @@
 
 A modern web-based UI for lab environments that provides dynamic tool tabs with lazy-loaded iframes. This UI reads configuration from the `UI_CONFIG` environment variable to determine which tools to display and their URLs.
 
+## Origins
+
+Source files originally copied from [LF-Certification/lab-images/ui (ref 2f60081)](https://github.com/LF-Certification/lab-images/tree/2f600814089befa9e8d675bff0a5b2f2b90170e8).
+
 ## Overview
 
 The P3 Sandbox UI creates a responsive Bootstrap-based interface with:
@@ -108,7 +112,3 @@ Key components:
 - `lab-ui/src/index.html`: HTML template with placeholders
 - `scripts/ui-entrypoint.sh`: Runtime configuration injection
 - `dev/`: Development environment with docker-compose
-
-## Origins
-
-Source files originally copied from [LF-Certification/lab-images/ui ref 2f60081](https://github.com/LF-Certification/lab-images/tree/2f600814089befa9e8d675bff0a5b2f2b90170e8).
