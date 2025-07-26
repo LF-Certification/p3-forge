@@ -2,7 +2,7 @@
   "config": {
     "version": "dev-test",
     "defaultTool": "vscode",
-    "expiresAt": "2024-12-25T15:30:00Z"
+    "expiresAt": "2025-07-26T01:00:00Z"
   },
   "tools": [
     {

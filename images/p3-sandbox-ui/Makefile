@@ -26,7 +26,7 @@ test-ui-config: build
 	@echo "Testing UI_CONFIG environment variable..."
 	docker build -t p3-sandbox-ui-test .
 	docker run --rm -p 8080:80 \
-		-e 'UI_CONFIG={"tools": [{"id": "terminal", "title": "Test Terminal", "url": "/terminal/", "default": true}]}' \
+		-e 'UI_CONFIG={"config": {"version": "test-makefile", "defaultTool": "terminal", "expiresAt": "2025-07-26T01:00:00Z"}, "tools": [{"name": "terminal", "url": "/terminal/"}]}' \
 		p3-sandbox-ui-test
 
 container: build

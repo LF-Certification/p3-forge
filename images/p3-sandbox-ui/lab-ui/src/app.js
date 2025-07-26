@@ -71,7 +71,7 @@ async function fetchConfiguration() {
  * @returns {Object} The transformed configuration object
  */
 function transformConfig(rawConfig) {
-  // If it's already in the old format, return as-is but preserve original
+  // If it's already in the old format (tools only, no config object), return as-is but preserve original
   if (rawConfig.tools && !rawConfig.config) {
     return {
       ...rawConfig,
@@ -466,6 +466,12 @@ async function startCountdownTimer() {
   try {
     // Get the current configuration
     const config = await fetchConfiguration();
+
+    // Debug logging
+    console.log("Config object:", config);
+    console.log("originalConfig:", config.originalConfig);
+    console.log("config.config:", config.originalConfig?.config);
+    console.log("expiresAt:", config.originalConfig?.config?.expiresAt);
 
     // Check if expiresAt is provided in config
     if (!config.originalConfig?.config?.expiresAt) {

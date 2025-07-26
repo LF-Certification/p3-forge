@@ -13,14 +13,14 @@ The P3 Sandbox UI creates a responsive Bootstrap-based interface with:
 
 ## Configuration
 
-The UI reads its configuration from the `UI_CONFIG` environment variable, which should contain a JSON object with the following structure:
+The UI reads its configuration from the `UI_CONFIG` environment variable, which should contain a JSON object with the following structure. All fields are required:
 
 ```json
 {
   "config": {
     "version": "dev-main-6b26377",
     "defaultTool": "terminal1",
-    "expiresAt": "2024-12-25T15:30:00Z"
+    "expiresAt": "2025-07-26T01:00:00Z"
   },
   "tools": [
     {
@@ -42,7 +42,7 @@ The UI reads its configuration from the `UI_CONFIG` environment variable, which 
   - `defaultTool`: Specifies which tool the UI should display on first load
   - `expiresAt`: RFC3339-formatted timestamp when the sandbox expires
 - `tools`: Array of tool configurations
-  - `name`: Nme as specified in the Sandbox spec
+  - `name`: Name as specified in the Sandbox spec
   - `url`: URL to load in the iframe
 
 **Note**: The UI automatically converts tool names to human-readable titles (e.g., "terminal1" becomes "Terminal 1", "browser1" becomes "Browser 1").
@@ -83,7 +83,7 @@ Starts the complete environment with terminals and VS Code services at http://lo
 ```bash
 docker build -t ui-test .
 docker run --rm -p 8080:80 \
-  -e 'UI_CONFIG={"config": {"defaultTool": "vscode", "expiresAt": "2024-12-25T15:30:00Z"}, "tools": [{"name": "vscode", "url": "/vscode/"}]}' \
+  -e 'UI_CONFIG={"config": {"defaultTool": "vscode", "expiresAt": "2025-07-26T01:00:00Z"}, "tools": [{"name": "vscode", "url": "/vscode/"}]}' \
   ui-test
 ```
 

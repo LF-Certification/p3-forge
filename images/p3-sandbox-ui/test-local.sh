@@ -15,7 +15,7 @@ docker build -t p3-sandbox-ui-test .
 
 # Test with different configurations
 echo -e "\n=== Test 1: Default VS Code configuration ==="
-UI_CONFIG='{"tools": [{"id": "terminal", "title": "Terminal 1", "url": "/terminal/"}, {"id": "terminal2", "title": "Terminal 2", "url": "/terminal2/"}, {"id": "vscode", "title": "VS Code", "url": "/vscode/", "default": true}]}'
+UI_CONFIG='{"config": {"version": "test-local-1", "defaultTool": "vscode", "expiresAt": "2025-07-26T01:00:00Z"}, "tools": [{"name": "terminal", "url": "/terminal/"}, {"name": "terminal2", "url": "/terminal2/"}, {"name": "vscode", "url": "/vscode/"}]}'
 
 docker run --rm -d --name ui-test \
   -p 8080:80 \
@@ -28,7 +28,7 @@ sleep 3
 
 # Check if the UI_CONFIG was injected properly
 echo "Checking if configuration was injected..."
-curl -s http://localhost:8080 | grep -q "Terminal 1" && echo "✓ Configuration injection successful" || echo "✗ Configuration injection failed"
+curl -s http://localhost:8080 | grep -q "Terminal" && echo "✓ Configuration injection successful" || echo "✗ Configuration injection failed"
 
 echo -e "\nTest complete. Container is running at http://localhost:8080"
 echo "Press any key to stop the container and run the next test..."
@@ -38,7 +38,7 @@ read -n 1
 docker stop ui-test
 
 echo -e "\n=== Test 2: Terminal-only configuration ==="
-UI_CONFIG='{"tools": [{"id": "terminal", "title": "My Terminal", "url": "/terminal/", "default": true}]}'
+UI_CONFIG='{"config": {"version": "test-local-2", "defaultTool": "terminal", "expiresAt": "2025-07-26T01:00:00Z"}, "tools": [{"name": "terminal", "url": "/terminal/"}]}'
 
 docker run --rm -d --name ui-test2 \
   -p 8080:80 \
@@ -49,7 +49,7 @@ echo "Container started with terminal-only config at http://localhost:8080"
 sleep 3
 
 # Check if the UI_CONFIG was injected properly
-curl -s http://localhost:8080 | grep -q "My Terminal" && echo "✓ Terminal-only configuration successful" || echo "✗ Terminal-only configuration failed"
+curl -s http://localhost:8080 | grep -q "Terminal" && echo "✓ Terminal-only configuration successful" || echo "✗ Terminal-only configuration failed"
 
 echo -e "\nTest complete. Container is running at http://localhost:8080"
 echo "Press any key to stop the container..."
