@@ -37,6 +37,8 @@ if [ -z "$IMAGE_PATH" ]; then
     exit 1
 fi
 TAG_PREFIX=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/|-|g')
+IMAGE_NAME=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/.*||')
+export IMAGE_NAME
 NEXT_VERSION=$(git cliff --bumped-version --include-path "$IMAGE_PATH/**" --tag-pattern "$TAG_PREFIX-v*")
 if [ -z "$NEXT_VERSION" ]; then
     echo "No changes detected for $IMAGE_PATH since last release"
@@ -49,7 +51,7 @@ if [ "$DRY_RUN" = true ]; then
     echo ""
     echo "Changelog preview:"
     echo "=================="
-    devbox run -q git-cliff \
+    IMAGE_NAME="$IMAGE_NAME" devbox run -q git-cliff \
       --tag "$NEXT_VERSION" \
       --include-path "$IMAGE_PATH/**" \
       --unreleased \
@@ -73,7 +75,7 @@ if ! git diff-index --quiet HEAD --; then
 fi
 
 # Update the changelog
-devbox run -q git-cliff \
+IMAGE_NAME="$IMAGE_NAME" devbox run -q git-cliff \
   --tag "$GIT_TAG" \
   --include-path "$IMAGE_PATH/**" \
   --output "$CHANGELOG"
