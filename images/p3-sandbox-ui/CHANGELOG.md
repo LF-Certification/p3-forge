@@ -1,5 +1,34 @@
 # Changelog
 
+## [p3-sandbox-ui-v1.2.0] - 2025-07-30
+
+### 🚀 Features
+
+- Re-copy lab-images ui source files
+- Pick up ui config from UI_CONFIG env var
+
+### 🐛 Bug Fixes
+
+- Modify source to be compatible with build pipeline
+- Ensure that the UI gets and processes expiresAt
+
+### 🚜 Refactor
+
+- Use the more reliable sed instead of perl
+- Assign config string to js variable
+- Make the UI work with UI_CONFIG schema
+- Get the expiration timestamp from UI_CONFIG
+- Remove config conditionals and assume UI_CONFIG is present
+- Replace ui with minimal code
+
+### 📚 Documentation
+
+- Move source origins text to the top of the file
+
+### 🧪 Testing
+
+- Add scripts for local testing
+
 ## [p3-sandbox-ui-v1.1.1] - 2025-07-24
 
 ### 🐛 Bug Fixes
