@@ -1,8 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
+# Enable verbose debugging
+set -x
+
 echo "=== Modifying disk image with custom initramfs script ==="
+echo "DEBUG: Working directory: $(pwd)"
+echo "DEBUG: Environment variables:"
+echo "  WORK_DIR=${WORK_DIR:-unset}"
+echo "  USER=$(whoami)"
+echo "  UID=$(id -u)"
+echo "  PATH=$PATH"
+
 cd "${WORK_DIR}"
+echo "DEBUG: Changed to work directory: $(pwd)"
 
 # Verify prerequisites
 if [ ! -f "base-disk.qcow2" ]; then
@@ -66,12 +77,19 @@ df -h mnt/
 
 # Copy overlay script to initramfs location
 echo "Installing overlay initramfs script..."
+echo "DEBUG: Source script info:"
+ls -la ../overlay-initramfs-script.sh
+echo "DEBUG: Target directory info:"
+sudo ls -la mnt/usr/share/initramfs-tools/scripts/init-bottom/
+
 sudo cp ../overlay-initramfs-script.sh mnt/usr/share/initramfs-tools/scripts/init-bottom/
 sudo chmod +x mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
 
 # Verify script installation
 echo "Verifying script installation..."
 sudo ls -la mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
+echo "DEBUG: Script content preview:"
+sudo head -10 mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
 
 # Show current initramfs hooks for debugging
 echo "Current initramfs scripts:"
@@ -79,14 +97,28 @@ sudo find mnt/usr/share/initramfs-tools/scripts/ -name "*.sh" -type f || true
 
 # Rebuild initramfs with comprehensive error handling
 echo "Rebuilding initramfs..."
-sudo chroot mnt/ /bin/sh -c "update-initramfs -u" || {
+echo "DEBUG: Checking chroot environment:"
+sudo chroot mnt/ /bin/sh -c "ls -la /usr/share/initramfs-tools/scripts/init-bottom/ | grep overlay || echo 'No overlay script found'"
+echo "DEBUG: Checking available kernels:"
+sudo chroot mnt/ /bin/sh -c "ls -la /boot/vmlinuz-* || echo 'No kernels found'"
+echo "DEBUG: Checking current initramfs files before update:"
+sudo chroot mnt/ /bin/sh -c "ls -la /boot/initrd.img-* || echo 'No initramfs files found'"
+
+echo "DEBUG: Running update-initramfs with verbose output:"
+sudo chroot mnt/ /bin/sh -c "update-initramfs -u -v" 2>&1 | tee initramfs-update.log || {
   echo "ERROR: Failed to rebuild initramfs"
+  echo "DEBUG: initramfs update log:"
+  cat initramfs-update.log || true
+  echo "DEBUG: Checking for any error files:"
+  sudo find mnt/var/log -name "*initramfs*" -o -name "*kernel*" | head -10 | xargs sudo ls -la || true
   sudo umount mnt/ || true
   sudo qemu-nbd --disconnect /dev/nbd0 || true
   exit 1
 }
 
 echo "✅ Initramfs rebuilt successfully"
+echo "DEBUG: initramfs update log contents:"
+cat initramfs-update.log || true
 
 # Show final verification
 echo "Final verification of script installation:"
@@ -95,6 +127,27 @@ sudo ls -la mnt/usr/share/initramfs-tools/scripts/init-bottom/
 # Check if initramfs was actually updated
 echo "Checking initramfs modification time:"
 sudo find mnt/boot -name "initrd.img-*" -exec ls -la {} \;
+
+# Verify the overlay script is included in the initramfs
+echo "Verifying overlay script is included in initramfs:"
+INITRD_FILE=$(sudo find mnt/boot -name "initrd.img-*" | head -1)
+if [ -n "$INITRD_FILE" ]; then
+  echo "DEBUG: Found initramfs file: $INITRD_FILE"
+  echo "DEBUG: File info:"
+  sudo ls -la "$INITRD_FILE"
+  echo "DEBUG: Checking initramfs contents:"
+  sudo chroot mnt/ /bin/sh -c "lsinitramfs ${INITRD_FILE#mnt} | head -20"
+  echo "DEBUG: Searching for overlay-related files:"
+  sudo chroot mnt/ /bin/sh -c "lsinitramfs ${INITRD_FILE#mnt} | grep -i overlay || echo 'No overlay files found in initramfs'"
+  echo "DEBUG: Searching specifically for our script:"
+  sudo chroot mnt/ /bin/sh -c "lsinitramfs ${INITRD_FILE#mnt} | grep overlay-initramfs-script || echo 'WARNING: overlay-initramfs-script.sh not found in initramfs'"
+  echo "DEBUG: All init-bottom scripts in initramfs:"
+  sudo chroot mnt/ /bin/sh -c "lsinitramfs ${INITRD_FILE#mnt} | grep scripts/init-bottom/ || echo 'No init-bottom scripts found'"
+else
+  echo "WARNING: No initramfs file found"
+  echo "DEBUG: Available files in /boot:"
+  sudo ls -la mnt/boot/ || true
+fi
 
 # Unmount and disconnect with verification
 echo "Unmounting filesystem..."
