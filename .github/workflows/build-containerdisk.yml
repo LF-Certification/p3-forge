@@ -75,9 +75,13 @@ jobs:
       working-directory: images/ubuntu-2404-containerdisk
       run: make validate-inputs setup-environment
 
-    - name: Extract and modify base image
+    - name: Download disk image
       working-directory: images/ubuntu-2404-containerdisk
-      run: make extract-base-image modify-disk-image
+      run: make download-disk-image
+
+    - name: Modify disk image
+      working-directory: images/ubuntu-2404-containerdisk
+      run: make modify-disk-image
 
     - name: Build container image
       id: build

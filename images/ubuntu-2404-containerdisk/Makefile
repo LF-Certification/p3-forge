@@ -51,9 +51,9 @@ help: ## Show this help message
 
 ##@ Primary Targets
 
-all: check-requirements validate-inputs setup-environment extract-base-image modify-disk-image build-container-image validate-image generate-summary ## Build complete containerdisk image
+all: check-requirements validate-inputs setup-environment download-disk-image modify-disk-image build-container-image validate-image generate-summary ## Build complete containerdisk image
 
-build: check-requirements validate-inputs setup-environment extract-base-image modify-disk-image build-container-image ## Build containerdisk image without validation
+build: check-requirements validate-inputs setup-environment download-disk-image modify-disk-image build-container-image ## Build containerdisk image without validation
 
 push: setup-registry-auth push-image ## Push the image to registry
 
@@ -73,9 +73,9 @@ setup-registry-auth: ## Setup registry authentication
 	@echo "=== Setting Up Registry Authentication ==="
 	@./scripts/setup-registry-auth.sh
 
-extract-base-image: ## Extract base containerdisk image
-	@echo "=== Extracting Base Image ==="
-	@./scripts/extract-base-image.sh
+download-disk-image: ## Download the disk image
+	@echo "=== Downloading Disk Image ==="
+	@./scripts/download-disk-image.sh
 
 modify-disk-image: ## Modify disk image with overlay initramfs script
 	@echo "=== Modifying Disk Image ==="
@@ -132,7 +132,7 @@ clean-all: clean clean-images ## Clean everything including images
 ##@ Development and Testing
 
 dev-build: ## Quick development build (skips validation)
-	@$(MAKE) validate-inputs setup-environment extract-base-image modify-disk-image build-container-image
+	@$(MAKE) validate-inputs setup-environment download-disk-image modify-disk-image build-container-image
 
 test-image: validate-image ## Test the built containerdisk image
 

@@ -1,150 +1,214 @@
 #!/bin/bash
 set -euo pipefail
-# Enable verbose debugging
-set -x
 
-echo "=== Downloading and modifying Ubuntu 24.04 cloud image ==="
-echo "DEBUG: Working directory: $(pwd)"
-echo "DEBUG: Environment variables:"
-echo " WORK_DIR=${WORK_DIR:-unset}"
-echo " USER=$(whoami)"
-echo " UID=$(id -u)"
-echo " PATH=$PATH"
+echo "=== Modifying disk image with overlay initramfs script ==="
 
-# Create workspace
-mkdir -p "${WORK_DIR}"
-cd "${WORK_DIR}"
-echo "DEBUG: Changed to work directory: $(pwd)"
+# Configuration
+WORK_DIR="${WORK_DIR:-build-workspace}"
+NBD_DEVICE="/dev/nbd0"
+MOUNT_POINT="${WORK_DIR}/disk-mount"
+OVERLAY_SCRIPT="../overlay-initramfs-script.sh"
+INITRAMFS_SCRIPT_DIR="usr/share/initramfs-tools/scripts/init-bottom"
+SCRIPT_NAME="overlay-setup"
 
-# Official Ubuntu 24.04 LTS cloud image URL
-CLOUD_IMAGE_URL="https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-amd64.img"
-CLOUD_IMAGE_NAME="ubuntu-24.04-server-cloudimg-amd64.img"
-CHECKSUM_URL="https://cloud-images.ubuntu.com/releases/noble/release/SHA256SUMS"
+# Validate inputs
+if [ ! -f "${WORK_DIR}/base-disk.qcow2" ]; then
+    echo "ERROR: Base disk image not found at ${WORK_DIR}/base-disk.qcow2"
+    echo "Run the download-disk-image target first"
+    exit 1
+fi
 
-# Check if image is in cache
-CACHE_DIR="$HOME/.cache/ubuntu-cloud-images"
-CACHE_FILE="$CACHE_DIR/$CLOUD_IMAGE_NAME"
-mkdir -p "$CACHE_DIR"
+if [ ! -f "$OVERLAY_SCRIPT" ]; then
+    echo "ERROR: Overlay initramfs script not found at $OVERLAY_SCRIPT"
+    exit 1
+fi
 
-if [ -f "$CACHE_FILE" ]; then
-  echo "Using cached cloud image: $CACHE_FILE"
-  cp "$CACHE_FILE" "./base-disk.qcow2"
-else
-  echo "Downloading official Ubuntu 24.04 cloud image..."
-  echo "URL: $CLOUD_IMAGE_URL"
-  # Download the image
-  curl -L -o "./base-disk.qcow2" "$CLOUD_IMAGE_URL"
-  # Download and verify checksum
-  echo "Downloading checksums for verification..."
-  curl -L -o "SHA256SUMS" "$CHECKSUM_URL"
-  # Verify checksum
-  echo "Verifying image integrity..."
-  if command -v sha256sum >/dev/null 2>&1; then
-    EXPECTED_CHECKSUM=$(grep "$CLOUD_IMAGE_NAME" SHA256SUMS | cut -d' ' -f1)
-    ACTUAL_CHECKSUM=$(sha256sum base-disk.qcow2 | cut -d' ' -f1)
-    if [ "$EXPECTED_CHECKSUM" = "$ACTUAL_CHECKSUM" ]; then
-      echo "✅ Checksum verification passed"
-    else
-      echo "❌ ERROR: Checksum verification failed"
-      echo "Expected: $EXPECTED_CHECKSUM"
-      echo "Actual: $ACTUAL_CHECKSUM"
-      exit 1
+# Check if running as root or with sudo capabilities
+if [ "$EUID" -ne 0 ] && ! sudo -n true 2>/dev/null; then
+    echo "ERROR: This script requires sudo access for NBD operations"
+    echo "Please run with sudo or ensure passwordless sudo is configured"
+    exit 1
+fi
+
+# Global cleanup function
+cleanup() {
+    local exit_code=$?
+
+    echo "Performing cleanup..."
+
+    # Unmount filesystem if mounted
+    if mountpoint -q "$MOUNT_POINT" 2>/dev/null; then
+        echo "Unmounting filesystem..."
+        sudo umount "$MOUNT_POINT" 2>/dev/null || true
     fi
-  else
-    echo "⚠️ WARNING: sha256sum not available, skipping checksum verification"
-  fi
-  # Save to cache for next time
-  echo "Saving image to cache..."
-  cp "./base-disk.qcow2" "$CACHE_FILE"
-  rm -f "SHA256SUMS"
+
+    # Remove mount point
+    if [ -d "$MOUNT_POINT" ]; then
+        rmdir "$MOUNT_POINT" 2>/dev/null || true
+    fi
+
+    # Disconnect NBD device if connected
+    if [ -b "$NBD_DEVICE" ]; then
+        echo "Disconnecting NBD device..."
+        sudo qemu-nbd --disconnect "$NBD_DEVICE" 2>/dev/null || true
+
+        # Wait for device to be fully disconnected
+        local timeout=10
+        while [ $timeout -gt 0 ] && [ -b "${NBD_DEVICE}p1" ]; do
+            sleep 1
+            ((timeout--))
+        done
+    fi
+
+    if [ $exit_code -ne 0 ]; then
+        echo "ERROR: Disk modification failed (exit code: $exit_code)"
+    fi
+
+    exit $exit_code
+}
+trap cleanup EXIT
+
+# Load NBD kernel module if not loaded
+if ! lsmod | grep -q "^nbd "; then
+    echo "Loading NBD kernel module..."
+    sudo modprobe nbd max_part=8
 fi
 
-# Verify downloaded image
-if [ ! -f "base-disk.qcow2" ]; then
-  echo "ERROR: Failed to download base-disk.qcow2"
-  exit 1
-fi
-echo "✅ Ubuntu cloud image downloaded successfully"
-qemu-img info base-disk.qcow2
-ls -lh base-disk.qcow2
-
-# Verify modification prerequisites
-if [ ! -f "../overlay-initramfs-script.sh" ]; then
-  echo "ERROR: overlay-initramfs-script.sh not found"
-  exit 1
+# Check if NBD device is available
+if [ ! -b "$NBD_DEVICE" ]; then
+    echo "ERROR: NBD device $NBD_DEVICE not available"
+    echo "Ensure NBD kernel module is loaded: sudo modprobe nbd max_part=8"
+    exit 1
 fi
 
-# Install dependencies (for GHA)
-echo "Installing dependencies for qemu-nbd..."
-sudo apt-get update
-sudo apt-get install -y qemu-utils kpartx
+# Disconnect NBD device if already in use
+if [ -b "${NBD_DEVICE}p1" ]; then
+    echo "NBD device appears to be in use, disconnecting..."
+    sudo qemu-nbd --disconnect "$NBD_DEVICE" || true
+    sleep 2
+fi
 
-# Setup cleanup function
-cleanup_nbd() {
-  echo "Cleaning up NBD connections..."
-  sudo umount mnt/ 2>/dev/null || true
-  sudo qemu-nbd --disconnect /dev/nbd0 2>/dev/null || true
-}
-cleanup_chroot() {
-  echo "Cleaning up chroot bind mounts..."
-  sudo umount mnt/proc 2>/dev/null || true
-  sudo umount mnt/sys 2>/dev/null || true
-  sudo umount mnt/dev 2>/dev/null || true
-  sudo umount mnt/run 2>/dev/null || true
-}
-trap 'cleanup_chroot; cleanup_nbd' EXIT ERR
+# Connect QCOW2 image to NBD device
+echo "Connecting QCOW2 image to NBD device..."
+cd "$WORK_DIR"
+sudo qemu-nbd --connect="$NBD_DEVICE" base-disk.qcow2
 
-# Create mount directory
-mkdir -p mnt
-
-# Connect NBD device
-echo "Connecting NBD device..."
-sudo modprobe nbd max_part=8
-sudo qemu-nbd --connect=/dev/nbd0 base-disk.qcow2 || {
-  echo "ERROR: NBD connect failed"
-  exit 1
-}
-
-# Poll for partitions
-echo "Waiting for partition to be ready..."
-for i in {1..30}; do
-  if [ -b /dev/nbd0p1 ]; then
-    echo "✅ Partition /dev/nbd0p1 is ready"
-    break
-  fi
-  echo "Attempt $i/30: Waiting for /dev/nbd0p1..."
-  sleep 1
+# Wait for device partitions to appear
+echo "Waiting for device partitions..."
+timeout=30
+while [ $timeout -gt 0 ] && [ ! -b "${NBD_DEVICE}p1" ]; do
+    sleep 1
+    ((timeout--))
 done
-if [ ! -b /dev/nbd0p1 ]; then
-  echo "ERROR: Partition /dev/nbd0p1 not ready after 30 seconds"
-  cleanup_nbd
-  exit 1
+
+if [ ! -b "${NBD_DEVICE}p1" ]; then
+    echo "ERROR: Device partition ${NBD_DEVICE}p1 did not appear"
+    echo "Available NBD devices:"
+    ls -la /dev/nbd* || true
+    exit 1
 fi
 
-# Mount the filesystem
-echo "Mounting filesystem..."
-sudo mount /dev/nbd0p1 mnt/ || {
-  echo "ERROR: Mount failed"
-  cleanup_nbd
-  exit 1
-}
+# Show partition information
+echo "Partition information:"
+sudo fdisk -l "$NBD_DEVICE" || true
+
+# Create mount point and mount the filesystem
+echo "Creating mount point and mounting filesystem..."
+mkdir -p "$MOUNT_POINT"
+sudo mount "${NBD_DEVICE}p1" "$MOUNT_POINT"
+
+# Verify mount was successful
+if ! mountpoint -q "$MOUNT_POINT"; then
+    echo "ERROR: Failed to mount filesystem"
+    exit 1
+fi
+
 echo "✅ Filesystem mounted successfully"
 
-# Verify mount and show filesystem info
-mountpoint mnt/
-df -h mnt/
+# Show filesystem information
+echo "Filesystem information:"
+df -h "$MOUNT_POINT"
+echo ""
+echo "Root directory contents:"
+sudo ls -la "$MOUNT_POINT/" | head -10
 
-# Copy overlay script to initramfs location
+# Create initramfs scripts directory if it doesn't exist
+SCRIPT_DIR="${MOUNT_POINT}/${INITRAMFS_SCRIPT_DIR}"
+echo "Creating initramfs script directory..."
+sudo mkdir -p "$SCRIPT_DIR"
+
+# Install the overlay initramfs script
 echo "Installing overlay initramfs script..."
-echo "DEBUG: Source script info:"
-ls -la ../overlay-initramfs-script.sh
-echo "DEBUG: Target directory info:"
-sudo ls -la mnt/usr/share/initramfs-tools/scripts/init-bottom/
-sudo cp ../overlay-initramfs-script.sh mnt/usr/share/initramfs-tools/scripts/init-bottom/
-sudo chmod +x mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
+SCRIPT_PATH="${SCRIPT_DIR}/${SCRIPT_NAME}"
+sudo cp "$OVERLAY_SCRIPT" "$SCRIPT_PATH"
+sudo chmod +x "$SCRIPT_PATH"
 
-# Verify script installation
-echo "Verifying script installation..."
-sudo ls -la mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
-echo "DEBUG: Script content preview:"
-sudo head -10 mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
+# Verify script was installed correctly
+if [ ! -f "$SCRIPT_PATH" ]; then
+    echo "ERROR: Failed to install overlay script"
+    exit 1
+fi
+
+echo "✅ Overlay script installed at: ${INITRAMFS_SCRIPT_DIR}/${SCRIPT_NAME}"
+
+# Show script content for verification
+echo "Installed script content (first 10 lines):"
+sudo head -10 "$SCRIPT_PATH"
+
+# Update initramfs to include our script
+echo "Updating initramfs..."
+sudo chroot "$MOUNT_POINT" /bin/bash -c "
+    export DEBIAN_FRONTEND=noninteractive
+    if command -v update-initramfs >/dev/null 2>&1; then
+        update-initramfs -u -k all
+        echo '✅ Initramfs updated successfully'
+    else
+        echo '⚠️  Warning: update-initramfs not found, manual initramfs update may be required'
+    fi
+"
+
+# Verify the modifications
+echo ""
+echo "=== Modification Summary ==="
+echo "Script installed: ${INITRAMFS_SCRIPT_DIR}/${SCRIPT_NAME}"
+echo "Script size: $(sudo stat -c%s "$SCRIPT_PATH") bytes"
+echo "Script permissions: $(sudo stat -c%a "$SCRIPT_PATH")"
+
+# Show some key directories to verify structure
+echo ""
+echo "Key directories in modified image:"
+sudo ls -la "${MOUNT_POINT}/usr/share/initramfs-tools/scripts/" || echo "initramfs-tools not found"
+sudo ls -la "${MOUNT_POINT}/boot/" | head -5 || echo "boot directory listing failed"
+
+# Sync filesystem changes
+echo "Syncing filesystem changes..."
+sudo sync
+
+# Unmount filesystem
+echo "Unmounting filesystem..."
+sudo umount "$MOUNT_POINT"
+rmdir "$MOUNT_POINT"
+
+# Disconnect NBD device
+echo "Disconnecting NBD device..."
+sudo qemu-nbd --disconnect "$NBD_DEVICE"
+
+# Wait for disconnect to complete
+sleep 2
+
+# Verify the modified image
+echo "Verifying modified image..."
+if ! qemu-img check base-disk.qcow2 >/dev/null 2>&1; then
+    echo "ERROR: Modified image failed integrity check"
+    exit 1
+fi
+
+# Show final image information
+echo ""
+echo "=== Modified Image Information ==="
+qemu-img info base-disk.qcow2
+echo ""
+echo "Image size on disk: $(du -h base-disk.qcow2 | cut -f1)"
+
+echo "✅ Disk image modification completed successfully"
+echo "Modified image ready for containerization at: ${WORK_DIR}/base-disk.qcow2"
