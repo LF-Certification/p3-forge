@@ -99,8 +99,28 @@ sudo find mnt/usr/share/initramfs-tools/scripts/ -name "*.sh" -type f || true
 echo "Rebuilding initramfs..."
 echo "DEBUG: Checking chroot environment:"
 sudo chroot mnt/ /bin/sh -c "ls -la /usr/share/initramfs-tools/scripts/init-bottom/ | grep overlay || echo 'No overlay script found'"
-echo "DEBUG: Checking available kernels:"
-sudo chroot mnt/ /bin/sh -c "ls -la /boot/vmlinuz-* || echo 'No kernels found'"
+
+# Bind mount essential directories for chroot environment
+echo "DEBUG: Setting up chroot bind mounts..."
+sudo mount --bind /proc mnt/proc
+sudo mount --bind /sys mnt/sys
+sudo mount --bind /dev mnt/dev
+sudo mount --bind /run mnt/run
+
+# Setup cleanup for bind mounts
+cleanup_chroot() {
+  echo "Cleaning up chroot bind mounts..."
+  sudo umount mnt/proc 2>/dev/null || true
+  sudo umount mnt/sys 2>/dev/null || true
+  sudo umount mnt/dev 2>/dev/null || true
+  sudo umount mnt/run 2>/dev/null || true
+}
+trap 'cleanup_chroot; cleanup_nbd' EXIT ERR
+
+echo "DEBUG: Checking available kernels after bind mounts:"
+sudo chroot mnt/ /bin/sh -c "ls -la /boot/vmlinuz-* || echo 'No kernels in /boot'"
+echo "DEBUG: Checking /lib/modules:"
+sudo chroot mnt/ /bin/sh -c "ls -la /lib/modules/ || echo 'No modules directory'"
 echo "DEBUG: Checking current initramfs files before update:"
 sudo chroot mnt/ /bin/sh -c "ls -la /boot/initrd.img-* || echo 'No initramfs files found'"
 
@@ -111,6 +131,7 @@ sudo chroot mnt/ /bin/sh -c "update-initramfs -u -v" 2>&1 | tee initramfs-update
   cat initramfs-update.log || true
   echo "DEBUG: Checking for any error files:"
   sudo find mnt/var/log -name "*initramfs*" -o -name "*kernel*" | head -10 | xargs sudo ls -la || true
+  cleanup_chroot
   sudo umount mnt/ || true
   sudo qemu-nbd --disconnect /dev/nbd0 || true
   exit 1
@@ -148,6 +169,9 @@ else
   echo "DEBUG: Available files in /boot:"
   sudo ls -la mnt/boot/ || true
 fi
+
+# Cleanup bind mounts before unmounting
+cleanup_chroot
 
 # Unmount and disconnect with verification
 echo "Unmounting filesystem..."
