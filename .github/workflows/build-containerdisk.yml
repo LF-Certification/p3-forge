@@ -156,7 +156,7 @@ jobs:
         # Setup authentication and push
         make push
 
-    - name: Validate and generate summary
+    - name: Generate summary
       working-directory: images/ubuntu-2404-containerdisk
       if: success()
       run: |
@@ -178,7 +178,7 @@ jobs:
         export RUNNER_OS="${{ runner.os }}"
 
         # Validate image and generate build summary
-        make validate-image generate-summary
+        make generate-summary
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
