@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "=== Modifying disk image with custom initramfs script using virt-customize ==="
+echo "=== Modifying disk image with custom initramfs script using qemu-nbd + chroot ==="
 echo "DEBUG: Working directory: $(pwd)"
 echo "DEBUG: Environment variables:"
 echo " WORK_DIR=${WORK_DIR:-unset}"
@@ -22,46 +22,125 @@ if [ ! -f "../overlay-initramfs-script.sh" ]; then
   exit 1
 fi
 
-# Check if virt-customize is available
-if ! command -v virt-customize &> /dev/null; then
-    echo "ERROR: virt-customize not found. Install libguestfs-tools (e.g., sudo apt install libguestfs-tools)"
+# Check if required tools are available
+if ! command -v qemu-nbd &> /dev/null; then
+    echo "ERROR: qemu-nbd not found. Install qemu-utils (e.g., sudo apt install qemu-utils)"
     exit 1
 fi
 
-# Setup cleanup function (though virt-customize doesn't require manual mounts)
+# Load NBD kernel module if not already loaded
+if ! lsmod | grep -q nbd; then
+    echo "Loading NBD kernel module..."
+    sudo modprobe nbd max_part=8
+fi
+
+# Find available NBD device
+NBD_DEVICE=""
+for i in {0..15}; do
+    if [ ! -b "/dev/nbd${i}" ]; then
+        continue
+    fi
+    if ! sudo qemu-nbd --list | grep -q "/dev/nbd${i}"; then
+        NBD_DEVICE="/dev/nbd${i}"
+        break
+    fi
+done
+
+if [ -z "$NBD_DEVICE" ]; then
+    echo "ERROR: No available NBD device found"
+    exit 1
+fi
+
+echo "Using NBD device: $NBD_DEVICE"
+
+# Setup cleanup function with proper NBD disconnect
 cleanup() {
-  echo "Cleaning up any temporary files..."
+  echo "Cleaning up..."
+
+  # Unmount bind mounts if they exist
+  for mount in proc sys dev run; do
+    if mountpoint -q "mnt/$mount" 2>/dev/null; then
+      echo "Unmounting mnt/$mount..."
+      sudo umount "mnt/$mount" || true
+    fi
+  done
+
+  # Unmount main filesystem if mounted
+  if mountpoint -q "mnt" 2>/dev/null; then
+    echo "Unmounting mnt..."
+    sudo umount mnt || true
+  fi
+
+  # Disconnect NBD device if connected
+  if [ -n "${NBD_DEVICE:-}" ] && sudo qemu-nbd --list | grep -q "$NBD_DEVICE"; then
+    echo "Disconnecting $NBD_DEVICE..."
+    sudo qemu-nbd --disconnect "$NBD_DEVICE" || true
+  fi
+
+  # Clean up temporary files
   rm -f initramfs-update.log boot-contents.txt modules-contents.txt initramfs-contents.txt 2>/dev/null || true
 }
 trap cleanup EXIT ERR
 
-# Use virt-customize to modify the image
-echo "Modifying image with virt-customize..."
+# Create mount directory
+mkdir -p mnt
 
-export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+# Connect NBD device
+echo "Connecting NBD device..."
+sudo qemu-nbd --connect="$NBD_DEVICE" base-disk.qcow2
 
-sudo virt-customize -a base-disk.qcow2 \
-  --run-command 'echo "deb http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse" > /etc/apt/sources.list' \
-  --run-command 'apt-get update' \
-  --install linux-image-generic \
-  --mkdir /usr/share/initramfs-tools/scripts/init-bottom/ \
-  --copy-in ../overlay-initramfs-script.sh:/usr/share/initramfs-tools/scripts/init-bottom/ \
-  --run-command 'chmod +x /usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh' \
-  --run-command 'update-initramfs -u -k all -v > /initramfs-update.log 2>&1' \
-  --run-command 'ls -la /boot/ > /boot-contents.txt' \
-  --run-command 'ls -la /lib/modules/ > /modules-contents.txt' \
-  --run-command 'lsinitramfs /boot/initrd.img-$(uname -r) > /initramfs-contents.txt' \
-  --selinux-relabel
+# Wait for device to be ready
+sleep 2
+
+# Find the root partition (usually the first or largest partition)
+ROOT_PARTITION="${NBD_DEVICE}p1"
+if [ ! -b "$ROOT_PARTITION" ]; then
+    # Try without partition number if it's not partitioned
+    ROOT_PARTITION="$NBD_DEVICE"
+fi
+
+echo "Mounting root partition: $ROOT_PARTITION"
+sudo mount "$ROOT_PARTITION" mnt/
+
+# Setup chroot environment with bind mounts
+echo "Setting up chroot environment..."
+sudo mount --bind /proc mnt/proc
+sudo mount --bind /sys mnt/sys
+sudo mount --bind /dev mnt/dev
+sudo mount --bind /run mnt/run
+
+# Modify the image via chroot
+echo "Modifying image via chroot..."
+
+# Update package sources
+echo "Updating package sources..."
+sudo chroot mnt/ /bin/bash -c 'echo "deb http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse" > /etc/apt/sources.list'
+sudo chroot mnt/ /bin/bash -c 'apt-get update'
+
+# Install kernel
+echo "Installing linux kernel..."
+sudo chroot mnt/ /bin/bash -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y linux-image-generic'
+
+# Create initramfs scripts directory
+echo "Creating initramfs scripts directory..."
+sudo mkdir -p mnt/usr/share/initramfs-tools/scripts/init-bottom/
+
+# Copy overlay script
+echo "Copying overlay initramfs script..."
+sudo cp ../overlay-initramfs-script.sh mnt/usr/share/initramfs-tools/scripts/init-bottom/
+sudo chmod +x mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
+
+# Update initramfs
+echo "Updating initramfs..."
+sudo chroot mnt/ /bin/bash -c 'update-initramfs -u -k all -v' 2>&1 | tee initramfs-update.log
+
+# Collect debug information
+echo "Collecting debug information..."
+sudo chroot mnt/ /bin/bash -c 'ls -la /boot/' > boot-contents.txt
+sudo chroot mnt/ /bin/bash -c 'ls -la /lib/modules/' > modules-contents.txt
+sudo chroot mnt/ /bin/bash -c 'lsinitramfs /boot/initrd.img-$(uname -r)' > initramfs-contents.txt
 
 echo "✅ Image modified successfully"
-
-# Extract debug logs from the image for verification
-echo "DEBUG: Extracting logs and contents..."
-
-virt-cat -a base-disk.qcow2 /initramfs-update.log > initramfs-update.log
-virt-cat -a base-disk.qcow2 /boot-contents.txt > boot-contents.txt
-virt-cat -a base-disk.qcow2 /modules-contents.txt > modules-contents.txt
-virt-cat -a base-disk.qcow2 /initramfs-contents.txt > initramfs-contents.txt
 
 # Display debug information
 echo "DEBUG: Initramfs update log contents:"
