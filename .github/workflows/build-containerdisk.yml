@@ -21,7 +21,7 @@ on:
         default: 'latest'
 env:
   REGISTRY: ${{ github.event.inputs.registry || 'ghcr.io' }}
-  IMAGE_NAME: ${{ github.repository }}/ubuntu-2404-containerdisk
+  IMAGE_NAME: ${{ github.repository_owner }}/ubuntu-2404-containerdisk
   IMAGE_TAG: ${{ github.event.inputs.image_tag || github.sha }}
   BASE_IMAGE: quay.io/containerdisks/ubuntu:24.04
   WORK_DIR: build-workspace
