@@ -64,7 +64,9 @@ jobs:
     - name: Setup caching
       uses: actions/cache@v4
       with:
-        path: ~/.cache/podman-images
+        path: |
+          ~/.cache/podman-images
+          ~/.cache/ubuntu-cloud-images
         key: ubuntu-2404-${{ hashFiles('images/ubuntu-2404-containerdisk/overlay-initramfs-script.sh') }}
         restore-keys: |
           ubuntu-2404-

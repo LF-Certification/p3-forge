@@ -38,7 +38,9 @@ trap cleanup EXIT ERR
 # Use virt-customize to modify the image
 echo "Modifying image with virt-customize..."
 
-virt-customize -a base-disk.qcow2 \
+export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+
+sudo virt-customize -a base-disk.qcow2 \
   --run-command 'echo "deb http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse" > /etc/apt/sources.list' \
   --run-command 'apt-get update' \
   --install linux-image-generic \
