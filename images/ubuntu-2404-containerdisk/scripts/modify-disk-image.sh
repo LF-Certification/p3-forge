@@ -1,16 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
-# Enable verbose debugging
-set -x
-
-echo "=== Modifying disk image with custom initramfs script ==="
+echo "=== Modifying disk image with custom initramfs script using virt-customize ==="
 echo "DEBUG: Working directory: $(pwd)"
 echo "DEBUG: Environment variables:"
-echo "  WORK_DIR=${WORK_DIR:-unset}"
-echo "  USER=$(whoami)"
-echo "  UID=$(id -u)"
-echo "  PATH=$PATH"
+echo " WORK_DIR=${WORK_DIR:-unset}"
+echo " USER=$(whoami)"
+echo " UID=$(id -u)"
+echo " PATH=$PATH"
 
 cd "${WORK_DIR}"
 echo "DEBUG: Changed to work directory: $(pwd)"
@@ -20,173 +17,65 @@ if [ ! -f "base-disk.qcow2" ]; then
   echo "ERROR: base-disk.qcow2 not found"
   exit 1
 fi
-
 if [ ! -f "../overlay-initramfs-script.sh" ]; then
   echo "ERROR: overlay-initramfs-script.sh not found"
   exit 1
 fi
 
-# Setup cleanup function
-cleanup_nbd() {
-  echo "Cleaning up NBD connections..."
-  sudo umount mnt/ 2>/dev/null || true
-  sudo qemu-nbd --disconnect /dev/nbd0 2>/dev/null || true
-}
-trap cleanup_nbd EXIT ERR
-
-# Create mount directory
-mkdir -p mnt
-
-# Connect NBD device with error handling
-echo "Connecting NBD device..."
-sudo qemu-nbd --connect=/dev/nbd0 base-disk.qcow2 || {
-  echo "ERROR: NBD connect failed"
-  exit 1
-}
-
-# Poll for partitions with better error handling
-echo "Waiting for partition to be ready..."
-for i in {1..30}; do
-  if [ -b /dev/nbd0p1 ]; then
-    echo "✅ Partition /dev/nbd0p1 is ready"
-    break
-  fi
-  echo "Attempt $i/30: Waiting for /dev/nbd0p1..."
-  sleep 1
-done
-
-if [ ! -b /dev/nbd0p1 ]; then
-  echo "ERROR: Partition /dev/nbd0p1 not ready after 30 seconds"
-  sudo qemu-nbd --disconnect /dev/nbd0 || true
-  exit 1
+# Check if virt-customize is available
+if ! command -v virt-customize &> /dev/null; then
+    echo "ERROR: virt-customize not found. Install libguestfs-tools (e.g., sudo apt install libguestfs-tools)"
+    exit 1
 fi
 
-# Mount the filesystem with error handling
-echo "Mounting filesystem..."
-sudo mount /dev/nbd0p1 mnt/ || {
-  echo "ERROR: Mount failed"
-  sudo qemu-nbd --disconnect /dev/nbd0 || true
-  exit 1
+# Setup cleanup function (though virt-customize doesn't require manual mounts)
+cleanup() {
+  echo "Cleaning up any temporary files..."
+  rm -f initramfs-update.log boot-contents.txt modules-contents.txt initramfs-contents.txt 2>/dev/null || true
 }
+trap cleanup EXIT ERR
 
-echo "✅ Filesystem mounted successfully"
+# Use virt-customize to modify the image
+echo "Modifying image with virt-customize..."
 
-# Verify mount and show filesystem info
-mountpoint mnt/
-df -h mnt/
+virt-customize -a base-disk.qcow2 \
+  --run-command 'echo "deb http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse" > /etc/apt/sources.list' \
+  --run-command 'apt-get update' \
+  --install linux-image-generic \
+  --mkdir /usr/share/initramfs-tools/scripts/init-bottom/ \
+  --copy-in ../overlay-initramfs-script.sh:/usr/share/initramfs-tools/scripts/init-bottom/ \
+  --run-command 'chmod +x /usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh' \
+  --run-command 'update-initramfs -u -k all -v > /initramfs-update.log 2>&1' \
+  --run-command 'ls -la /boot/ > /boot-contents.txt' \
+  --run-command 'ls -la /lib/modules/ > /modules-contents.txt' \
+  --run-command 'lsinitramfs /boot/initrd.img-$(uname -r) > /initramfs-contents.txt' \
+  --selinux-relabel
 
-# Copy overlay script to initramfs location
-echo "Installing overlay initramfs script..."
-echo "DEBUG: Source script info:"
-ls -la ../overlay-initramfs-script.sh
-echo "DEBUG: Target directory info:"
-sudo ls -la mnt/usr/share/initramfs-tools/scripts/init-bottom/
+echo "✅ Image modified successfully"
 
-sudo cp ../overlay-initramfs-script.sh mnt/usr/share/initramfs-tools/scripts/init-bottom/
-sudo chmod +x mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
+# Extract debug logs from the image for verification
+echo "DEBUG: Extracting logs and contents..."
 
-# Verify script installation
-echo "Verifying script installation..."
-sudo ls -la mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
-echo "DEBUG: Script content preview:"
-sudo head -10 mnt/usr/share/initramfs-tools/scripts/init-bottom/overlay-initramfs-script.sh
+virt-cat -a base-disk.qcow2 /initramfs-update.log > initramfs-update.log
+virt-cat -a base-disk.qcow2 /boot-contents.txt > boot-contents.txt
+virt-cat -a base-disk.qcow2 /modules-contents.txt > modules-contents.txt
+virt-cat -a base-disk.qcow2 /initramfs-contents.txt > initramfs-contents.txt
 
-# Show current initramfs hooks for debugging
-echo "Current initramfs scripts:"
-sudo find mnt/usr/share/initramfs-tools/scripts/ -name "*.sh" -type f || true
+# Display debug information
+echo "DEBUG: Initramfs update log contents:"
+cat initramfs-update.log || echo "No log found"
 
-# Rebuild initramfs with comprehensive error handling
-echo "Rebuilding initramfs..."
-echo "DEBUG: Checking chroot environment:"
-sudo chroot mnt/ /bin/sh -c "ls -la /usr/share/initramfs-tools/scripts/init-bottom/ | grep overlay || echo 'No overlay script found'"
+echo "DEBUG: /boot/ contents:"
+cat boot-contents.txt || echo "No contents found"
 
-# Bind mount essential directories for chroot environment
-echo "DEBUG: Setting up chroot bind mounts..."
-sudo mount --bind /proc mnt/proc
-sudo mount --bind /sys mnt/sys
-sudo mount --bind /dev mnt/dev
-sudo mount --bind /run mnt/run
+echo "DEBUG: /lib/modules/ contents:"
+cat modules-contents.txt || echo "No contents found"
 
-# Setup cleanup for bind mounts
-cleanup_chroot() {
-  echo "Cleaning up chroot bind mounts..."
-  sudo umount mnt/proc 2>/dev/null || true
-  sudo umount mnt/sys 2>/dev/null || true
-  sudo umount mnt/dev 2>/dev/null || true
-  sudo umount mnt/run 2>/dev/null || true
-}
-trap 'cleanup_chroot; cleanup_nbd' EXIT ERR
+echo "DEBUG: Initramfs contents preview (first 20 lines):"
+head -20 initramfs-contents.txt || echo "No contents found"
 
-echo "DEBUG: Checking available kernels after bind mounts:"
-sudo chroot mnt/ /bin/sh -c "ls -la /boot/vmlinuz-* || echo 'No kernels in /boot'"
-echo "DEBUG: Checking /lib/modules:"
-sudo chroot mnt/ /bin/sh -c "ls -la /lib/modules/ || echo 'No modules directory'"
-echo "DEBUG: Checking current initramfs files before update:"
-sudo chroot mnt/ /bin/sh -c "ls -la /boot/initrd.img-* || echo 'No initramfs files found'"
-
-echo "DEBUG: Running update-initramfs with verbose output:"
-sudo chroot mnt/ /bin/sh -c "update-initramfs -u -v" 2>&1 | tee initramfs-update.log || {
-  echo "ERROR: Failed to rebuild initramfs"
-  echo "DEBUG: initramfs update log:"
-  cat initramfs-update.log || true
-  echo "DEBUG: Checking for any error files:"
-  sudo find mnt/var/log -name "*initramfs*" -o -name "*kernel*" | head -10 | xargs sudo ls -la || true
-  cleanup_chroot
-  sudo umount mnt/ || true
-  sudo qemu-nbd --disconnect /dev/nbd0 || true
-  exit 1
-}
-
-echo "✅ Initramfs rebuilt successfully"
-echo "DEBUG: initramfs update log contents:"
-cat initramfs-update.log || true
-
-# Show final verification
-echo "Final verification of script installation:"
-sudo ls -la mnt/usr/share/initramfs-tools/scripts/init-bottom/
-
-# Check if initramfs was actually updated
-echo "Checking initramfs modification time:"
-sudo find mnt/boot -name "initrd.img-*" -exec ls -la {} \;
-
-# Verify the overlay script is included in the initramfs
-echo "Verifying overlay script is included in initramfs:"
-INITRD_FILE=$(sudo find mnt/boot -name "initrd.img-*" | head -1)
-if [ -n "$INITRD_FILE" ]; then
-  echo "DEBUG: Found initramfs file: $INITRD_FILE"
-  echo "DEBUG: File info:"
-  sudo ls -la "$INITRD_FILE"
-  echo "DEBUG: Checking initramfs contents:"
-  sudo chroot mnt/ /bin/sh -c "lsinitramfs ${INITRD_FILE#mnt} | head -20"
-  echo "DEBUG: Searching for overlay-related files:"
-  sudo chroot mnt/ /bin/sh -c "lsinitramfs ${INITRD_FILE#mnt} | grep -i overlay || echo 'No overlay files found in initramfs'"
-  echo "DEBUG: Searching specifically for our script:"
-  sudo chroot mnt/ /bin/sh -c "lsinitramfs ${INITRD_FILE#mnt} | grep overlay-initramfs-script || echo 'WARNING: overlay-initramfs-script.sh not found in initramfs'"
-  echo "DEBUG: All init-bottom scripts in initramfs:"
-  sudo chroot mnt/ /bin/sh -c "lsinitramfs ${INITRD_FILE#mnt} | grep scripts/init-bottom/ || echo 'No init-bottom scripts found'"
-else
-  echo "WARNING: No initramfs file found"
-  echo "DEBUG: Available files in /boot:"
-  sudo ls -la mnt/boot/ || true
-fi
-
-# Cleanup bind mounts before unmounting
-cleanup_chroot
-
-# Unmount and disconnect with verification
-echo "Unmounting filesystem..."
-sudo umount mnt/ || {
-  echo "ERROR: Unmount failed"
-  exit 1
-}
-
-echo "Disconnecting NBD device..."
-sudo qemu-nbd --disconnect /dev/nbd0 || {
-  echo "ERROR: NBD disconnect failed"
-  exit 1
-}
-
-echo "✅ Disk image modification completed successfully"
+echo "DEBUG: Searching for overlay script in initramfs:"
+grep -i "overlay-initramfs-script" initramfs-contents.txt || echo "WARNING: overlay-initramfs-script.sh not found in initramfs"
 
 # Final verification of modified image
 echo "Final image verification:"
@@ -197,3 +86,5 @@ ls -lh base-disk.qcow2
 echo ""
 echo "=== Disk space after modification ==="
 df -h
+
+echo "✅ Disk image modification completed successfully"
