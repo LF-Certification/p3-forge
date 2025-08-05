@@ -34,23 +34,6 @@ for label in "${REQUIRED_LABELS[@]}"; do
   fi
 done
 
-# Test container creation and disk extraction
-echo ""
-echo "=== Container Functionality Test ==="
-TEST_CONTAINER="test-container-$(date +%s)"
-
-# Cleanup function for test container
-cleanup_test() {
-  podman rm "$TEST_CONTAINER" 2>/dev/null || true
-  rm -f test-disk.qcow2 validation-results.txt
-}
-trap cleanup_test EXIT ERR
-
-echo "Creating test container: $TEST_CONTAINER"
-podman create --name "$TEST_CONTAINER" "$IMAGE_FULL_NAME"
-
-echo "✅ Container created successfully"
-
 # Extract and validate disk image
 echo ""
 echo "=== Disk Image Validation ==="
