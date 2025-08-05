@@ -23,7 +23,6 @@ DISK_SIZE_MB=$((DISK_SIZE / 1024 / 1024))
 echo "Build metadata:"
 echo "  Build date: $BUILD_DATE"
 echo "  Disk size: ${DISK_SIZE_MB}MB"
-echo "  Base image: ${BASE_IMAGE}"
 echo "  Git SHA: ${GIT_SHA:-unknown}"
 
 # Create comprehensive Dockerfile with labels
@@ -46,7 +45,7 @@ echo "  Git SHA: ${GIT_SHA:-unknown}"
   echo "LABEL io.kubevirt.containerdisk=\"ubuntu-24.04\""
   echo "LABEL io.kubevirt.containerdisk.overlay=\"true\""
   echo "LABEL io.kubevirt.containerdisk.architecture=\"2-layer\""
-  echo "LABEL build.base-image=\"${BASE_IMAGE}\""
+  echo "LABEL build.base-image=\"ubuntu:24.04-cloud-image\""
   echo "LABEL build.disk-size-mb=\"$DISK_SIZE_MB\""
   echo "LABEL build.workflow-run=\"${GITHUB_RUN_ID:-unknown}\""
   echo "LABEL build.trigger=\"${GITHUB_EVENT_NAME:-manual}\""

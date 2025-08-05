@@ -23,13 +23,6 @@ if [ ${#IMAGE_TAG} -gt 128 ]; then
   exit 1
 fi
 
-# Validate base image format
-if [[ ! "${BASE_IMAGE}" =~ ^[a-zA-Z0-9._/-]+:[a-zA-Z0-9._-]+$ ]]; then
-  echo "ERROR: Invalid base image format: ${BASE_IMAGE}"
-  exit 1
-fi
-
 echo "✅ All workflow inputs validated successfully"
 echo "Registry: ${REGISTRY}"
 echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-echo "Base Image: ${BASE_IMAGE}"

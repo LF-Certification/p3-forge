@@ -27,7 +27,7 @@ echo "**Full Image URL:** \`$IMAGE_FULL_NAME\`"
 echo ""
 
 echo "### Base Image Information"
-echo "**Base Image:** ${BASE_IMAGE}"
+echo "**Base Image:** Ubuntu 24.04 Cloud Image (from Canonical)"
 echo ""
 
 # Disk image information if available
@@ -95,7 +95,7 @@ echo ""
   echo ""
   echo "## Image Details"
   echo "- Full Image: $IMAGE_FULL_NAME"
-  echo "- Base Image: ${BASE_IMAGE}"
+  echo "- Base Image: Ubuntu 24.04 Cloud Image (from Canonical)"
   echo "- Registry: ${REGISTRY}"
 } > ../build-summary.md
 

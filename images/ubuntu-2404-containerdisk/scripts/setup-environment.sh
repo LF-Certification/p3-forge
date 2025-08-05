@@ -6,10 +6,9 @@ echo "=== Setting up build environment ==="
 # Setup caching
 echo "=== Setting up build cache ==="
 
-# Create cache key based on base image and script content
-BASE_IMAGE_DIGEST=$(echo "${BASE_IMAGE}" | sha256sum | cut -d' ' -f1)
+# Create cache key based on script content
 SCRIPT_HASH=$(sha256sum overlay-initramfs-script.sh | cut -d' ' -f1)
-CACHE_KEY="containerdisk-${BASE_IMAGE_DIGEST}-${SCRIPT_HASH}"
+CACHE_KEY="ubuntu-2404-${SCRIPT_HASH}"
 
 echo "Cache key: $CACHE_KEY"
 
@@ -22,7 +21,7 @@ echo "✅ Cache setup complete"
 # Install required tools
 echo "=== Installing required tools ==="
 sudo apt-get update
-sudo apt-get install -y qemu-utils podman jq
+sudo apt-get install -y qemu-utils podman jq libguestfs-tools
 
 sudo modprobe nbd max_part=8
 sudo modprobe dm_mod

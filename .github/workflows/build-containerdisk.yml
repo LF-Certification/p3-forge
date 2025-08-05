@@ -23,7 +23,6 @@ env:
   REGISTRY: ${{ github.event.inputs.registry || 'ghcr.io' }}
   IMAGE_NAME: ${{ github.repository_owner }}/ubuntu-2404-containerdisk
   IMAGE_TAG: ${{ github.event.inputs.image_tag || github.sha }}
-  BASE_IMAGE: quay.io/containerdisks/ubuntu:24.04
   WORK_DIR: build-workspace
 jobs:
   build-containerdisk:
@@ -45,140 +44,60 @@ jobs:
       with:
         fetch-depth: 0  # Fetch all history for proper git info
 
+    - name: Setup build environment variables
+      run: |
+        echo "REGISTRY=${{ env.REGISTRY }}" >> $GITHUB_ENV
+        echo "IMAGE_NAME=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
+        echo "IMAGE_TAG=${{ env.IMAGE_TAG }}" >> $GITHUB_ENV
+        echo "WORK_DIR=${{ env.WORK_DIR }}" >> $GITHUB_ENV
+        echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+        echo "GITHUB_ACTOR=${{ github.actor }}" >> $GITHUB_ENV
+        echo "GITHUB_REPOSITORY=${{ github.repository }}" >> $GITHUB_ENV
+        echo "GITHUB_REF=${{ github.ref }}" >> $GITHUB_ENV
+        echo "GITHUB_REF_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+        echo "GITHUB_SHA=${{ github.sha }}" >> $GITHUB_ENV
+        echo "GITHUB_RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+        echo "GITHUB_EVENT_NAME=${{ github.event_name }}" >> $GITHUB_ENV
+        echo "GITHUB_OUTPUT=${{ github.output }}" >> $GITHUB_ENV
+        echo "RUNNER_OS=${{ runner.os }}" >> $GITHUB_ENV
+
     - name: Setup caching
       uses: actions/cache@v4
       with:
         path: ~/.cache/podman-images
-        key: base-image-${{ env.BASE_IMAGE }}-${{ hashFiles('images/ubuntu-2404-containerdisk/overlay-initramfs-script.sh') }}
+        key: ubuntu-2404-${{ hashFiles('images/ubuntu-2404-containerdisk/overlay-initramfs-script.sh') }}
         restore-keys: |
-          base-image-${{ env.BASE_IMAGE }}-
+          ubuntu-2404-
 
     - name: Validate inputs and setup environment
       working-directory: images/ubuntu-2404-containerdisk
-      run: |
-        # Export environment variables for Makefile
-        export REGISTRY="${{ env.REGISTRY }}"
-        export IMAGE_NAME="${{ env.IMAGE_NAME }}"
-        export IMAGE_TAG="${{ env.IMAGE_TAG }}"
-        export BASE_IMAGE="${{ env.BASE_IMAGE }}"
-        export WORK_DIR="${{ env.WORK_DIR }}"
-        export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-        export GITHUB_ACTOR="${{ github.actor }}"
-        export GITHUB_REPOSITORY="${{ github.repository }}"
-        export GITHUB_REF="${{ github.ref }}"
-        export GITHUB_REF_NAME="${{ github.ref_name }}"
-        export GITHUB_SHA="${{ github.sha }}"
-        export GITHUB_RUN_ID="${{ github.run_id }}"
-        export GITHUB_EVENT_NAME="${{ github.event_name }}"
-        export GITHUB_OUTPUT="${{ github.output }}"
-        export RUNNER_OS="${{ runner.os }}"
-
-        # Run validation and setup
-        make validate-inputs setup-environment
+      run: make validate-inputs setup-environment
 
     - name: Extract and modify base image
       working-directory: images/ubuntu-2404-containerdisk
-      run: |
-        # Export environment variables for Makefile
-        export REGISTRY="${{ env.REGISTRY }}"
-        export IMAGE_NAME="${{ env.IMAGE_NAME }}"
-        export IMAGE_TAG="${{ env.IMAGE_TAG }}"
-        export BASE_IMAGE="${{ env.BASE_IMAGE }}"
-        export WORK_DIR="${{ env.WORK_DIR }}"
-        export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-        export GITHUB_ACTOR="${{ github.actor }}"
-        export GITHUB_REPOSITORY="${{ github.repository }}"
-        export GITHUB_REF="${{ github.ref }}"
-        export GITHUB_REF_NAME="${{ github.ref_name }}"
-        export GITHUB_SHA="${{ github.sha }}"
-        export GITHUB_RUN_ID="${{ github.run_id }}"
-        export GITHUB_EVENT_NAME="${{ github.event_name }}"
-        export GITHUB_OUTPUT="${{ github.output }}"
-        export RUNNER_OS="${{ runner.os }}"
-
-        # Extract base image and modify with overlay script
-        make extract-base-image modify-disk-image
+      run: make extract-base-image modify-disk-image
 
     - name: Build container image
       id: build
       working-directory: images/ubuntu-2404-containerdisk
       run: |
-        # Export environment variables for Makefile
-        export REGISTRY="${{ env.REGISTRY }}"
-        export IMAGE_NAME="${{ env.IMAGE_NAME }}"
-        export IMAGE_TAG="${{ env.IMAGE_TAG }}"
-        export BASE_IMAGE="${{ env.BASE_IMAGE }}"
-        export WORK_DIR="${{ env.WORK_DIR }}"
-        export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-        export GITHUB_ACTOR="${{ github.actor }}"
-        export GITHUB_REPOSITORY="${{ github.repository }}"
-        export GITHUB_REF="${{ github.ref }}"
-        export GITHUB_REF_NAME="${{ github.ref_name }}"
-        export GITHUB_SHA="${{ github.sha }}"
-        export GITHUB_RUN_ID="${{ github.run_id }}"
-        export GITHUB_EVENT_NAME="${{ github.event_name }}"
-        export GITHUB_OUTPUT="${{ github.output }}"
-        export RUNNER_OS="${{ runner.os }}"
-
-        # Build container image
         make build-container-image
-
-        # Set output for downstream steps
         echo "image-url=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
     - name: Push container image
       working-directory: images/ubuntu-2404-containerdisk
       if: success()
-      run: |
-        # Export environment variables for Makefile
-        export REGISTRY="${{ env.REGISTRY }}"
-        export IMAGE_NAME="${{ env.IMAGE_NAME }}"
-        export IMAGE_TAG="${{ env.IMAGE_TAG }}"
-        export BASE_IMAGE="${{ env.BASE_IMAGE }}"
-        export WORK_DIR="${{ env.WORK_DIR }}"
-        export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-        export GITHUB_ACTOR="${{ github.actor }}"
-        export GITHUB_REPOSITORY="${{ github.repository }}"
-        export GITHUB_REF="${{ github.ref }}"
-        export GITHUB_REF_NAME="${{ github.ref_name }}"
-        export GITHUB_SHA="${{ github.sha }}"
-        export GITHUB_RUN_ID="${{ github.run_id }}"
-        export GITHUB_EVENT_NAME="${{ github.event_name }}"
-        export GITHUB_OUTPUT="${{ github.output }}"
-        export RUNNER_OS="${{ runner.os }}"
-
-        # Registry-specific credentials
-        export QUAY_USERNAME="${{ secrets.QUAY_USERNAME }}"
-        export QUAY_PASSWORD="${{ secrets.QUAY_PASSWORD }}"
-        export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
-        export DOCKERHUB_TOKEN="${{ secrets.DOCKERHUB_TOKEN }}"
-
-        # Setup authentication and push
-        make push
+      env:
+        QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+        QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      run: make push
 
     - name: Generate summary
       working-directory: images/ubuntu-2404-containerdisk
       if: success()
-      run: |
-        # Export environment variables for Makefile
-        export REGISTRY="${{ env.REGISTRY }}"
-        export IMAGE_NAME="${{ env.IMAGE_NAME }}"
-        export IMAGE_TAG="${{ env.IMAGE_TAG }}"
-        export BASE_IMAGE="${{ env.BASE_IMAGE }}"
-        export WORK_DIR="${{ env.WORK_DIR }}"
-        export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-        export GITHUB_ACTOR="${{ github.actor }}"
-        export GITHUB_REPOSITORY="${{ github.repository }}"
-        export GITHUB_REF="${{ github.ref }}"
-        export GITHUB_REF_NAME="${{ github.ref_name }}"
-        export GITHUB_SHA="${{ github.sha }}"
-        export GITHUB_RUN_ID="${{ github.run_id }}"
-        export GITHUB_EVENT_NAME="${{ github.event_name }}"
-        export GITHUB_OUTPUT="${{ github.output }}"
-        export RUNNER_OS="${{ runner.os }}"
-
-        # Validate image and generate build summary
-        make generate-summary
+      run: make generate-summary
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4

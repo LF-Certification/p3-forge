@@ -6,7 +6,6 @@
 export REGISTRY ?= ghcr.io
 export IMAGE_NAME ?= lf-certification/sandbox-images/ubuntu-2404-containerdisk
 export IMAGE_TAG ?= latest
-export BASE_IMAGE ?= quay.io/containerdisks/ubuntu:24.04
 export WORK_DIR ?= build-workspace
 
 # GitHub-like environment variables for local builds
@@ -37,7 +36,6 @@ help: ## Show this help message
 	@echo "  REGISTRY         Container registry (default: ghcr.io)"
 	@echo "  IMAGE_NAME       Image name (default: lf-certification/sandbox-images/ubuntu-2404-containerdisk)"
 	@echo "  IMAGE_TAG        Image tag (default: latest)"
-	@echo "  BASE_IMAGE       Base containerdisk image (default: quay.io/containerdisks/ubuntu:24.04)"
 	@echo "  WORK_DIR         Build workspace directory (default: build-workspace)"
 	@echo "  GITHUB_TOKEN     GitHub token for GHCR authentication"
 	@echo "  QUAY_USERNAME    Quay.io username"
@@ -113,7 +111,6 @@ check-requirements: ## Check if all required tools are available
 	@echo "Configuration:"
 	@echo "  Registry: $(REGISTRY)"
 	@echo "  Image: $(IMAGE_NAME):$(IMAGE_TAG)"
-	@echo "  Base Image: $(BASE_IMAGE)"
 	@echo "  Work Directory: $(WORK_DIR)"
 
 clean: ## Clean up build artifacts and workspace
@@ -144,7 +141,6 @@ show-config: ## Show current configuration
 	@echo "  REGISTRY=$(REGISTRY)"
 	@echo "  IMAGE_NAME=$(IMAGE_NAME)"
 	@echo "  IMAGE_TAG=$(IMAGE_TAG)"
-	@echo "  BASE_IMAGE=$(BASE_IMAGE)"
 	@echo "  WORK_DIR=$(WORK_DIR)"
 	@echo "  Full Image: $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)"
 	@echo ""
