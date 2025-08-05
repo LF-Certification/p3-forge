@@ -30,7 +30,9 @@ echo "Mounting bottom layer (ContainerDisk)..."
 mkdir -p ${bottommnt}
 mount ${bottomdev} ${bottommnt}
 
-# Mount the top layer (PVC overlay storage)
+# Mount the top layer
+echo "Formatting top layer..."
+mkfs.ext4 ${topdev}
 echo "Mounting top layer (PVC overlay)..."
 mkdir -p ${topmnt}
 mount ${topdev} ${topmnt}

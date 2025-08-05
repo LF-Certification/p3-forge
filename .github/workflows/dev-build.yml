@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'images/**'
+      - '!images/**/*-containerdisk/**'
     branches:
       - '**'
 
