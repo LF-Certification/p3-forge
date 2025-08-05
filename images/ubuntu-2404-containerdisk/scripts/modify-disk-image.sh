@@ -117,9 +117,15 @@ echo "Updating package sources..."
 sudo chroot mnt/ /bin/bash -c 'echo "deb http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse" > /etc/apt/sources.list'
 sudo chroot mnt/ /bin/bash -c 'apt-get update'
 
+# Clean package cache to free up space
+echo "Cleaning package cache..."
+sudo chroot mnt/ /bin/bash -c 'apt-get clean'
+sudo chroot mnt/ /bin/bash -c 'apt-get autoclean'
+sudo chroot mnt/ /bin/bash -c 'rm -rf /var/lib/apt/lists/*'
+
 # Install kernel
 echo "Installing linux kernel..."
-sudo chroot mnt/ /bin/bash -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y linux-image-generic'
+sudo chroot mnt/ /bin/bash -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends linux-image-generic'
 
 # Create initramfs scripts directory
 echo "Creating initramfs scripts directory..."
