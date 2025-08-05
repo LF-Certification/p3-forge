@@ -3,12 +3,22 @@ set -euo pipefail
 
 echo "=== Downloading Ubuntu 24.04 cloud image ==="
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
 # Configuration
 UBUNTU_BASE_URL="https://cloud-images.ubuntu.com/noble/current"
 IMAGE_FILENAME="noble-server-cloudimg-amd64.img"
 CHECKSUM_FILENAME="SHA256SUMS"
 CACHE_DIR="$HOME/.cache/qemu-images"
-WORK_DIR="${WORK_DIR:-build-workspace}"
+
+# Ensure WORK_DIR is absolute
+if [[ "${WORK_DIR:-build-workspace}" = /* ]]; then
+    WORK_DIR="${WORK_DIR:-build-workspace}"
+else
+    WORK_DIR="${PROJECT_DIR}/${WORK_DIR:-build-workspace}"
+fi
 
 # Create necessary directories
 mkdir -p "${CACHE_DIR}"

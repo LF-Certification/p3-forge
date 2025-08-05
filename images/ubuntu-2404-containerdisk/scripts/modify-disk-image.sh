@@ -3,11 +3,19 @@ set -euo pipefail
 
 echo "=== Modifying disk image with overlay initramfs script ==="
 
-# Configuration
-WORK_DIR="${WORK_DIR:-build-workspace}"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Configuration - ensure WORK_DIR is absolute
+if [[ "${WORK_DIR:-build-workspace}" = /* ]]; then
+    WORK_DIR="${WORK_DIR:-build-workspace}"
+else
+    WORK_DIR="${PROJECT_DIR}/${WORK_DIR:-build-workspace}"
+fi
 NBD_DEVICE="/dev/nbd0"
 MOUNT_POINT="${WORK_DIR}/disk-mount"
-OVERLAY_SCRIPT="../overlay-initramfs-script.sh"
+OVERLAY_SCRIPT="${PROJECT_DIR}/overlay-initramfs-script.sh"
 INITRAMFS_SCRIPT_DIR="usr/share/initramfs-tools/scripts/init-bottom"
 SCRIPT_NAME="overlay-setup"
 
@@ -90,8 +98,7 @@ fi
 
 # Connect QCOW2 image to NBD device
 echo "Connecting QCOW2 image to NBD device..."
-cd "$WORK_DIR"
-sudo qemu-nbd --connect="$NBD_DEVICE" base-disk.qcow2
+sudo qemu-nbd --connect="$NBD_DEVICE" "${WORK_DIR}/base-disk.qcow2"
 
 # Wait for device partitions to appear
 echo "Waiting for device partitions..."
@@ -133,13 +140,13 @@ echo "Root directory contents:"
 sudo ls -la "$MOUNT_POINT/" | head -10
 
 # Create initramfs scripts directory if it doesn't exist
-SCRIPT_DIR="${MOUNT_POINT}/${INITRAMFS_SCRIPT_DIR}"
+INITRAMFS_DIR="${MOUNT_POINT}/${INITRAMFS_SCRIPT_DIR}"
 echo "Creating initramfs script directory..."
-sudo mkdir -p "$SCRIPT_DIR"
+sudo mkdir -p "$INITRAMFS_DIR"
 
 # Install the overlay initramfs script
 echo "Installing overlay initramfs script..."
-SCRIPT_PATH="${SCRIPT_DIR}/${SCRIPT_NAME}"
+SCRIPT_PATH="${INITRAMFS_DIR}/${SCRIPT_NAME}"
 sudo cp "$OVERLAY_SCRIPT" "$SCRIPT_PATH"
 sudo chmod +x "$SCRIPT_PATH"
 
@@ -198,7 +205,7 @@ sleep 2
 
 # Verify the modified image
 echo "Verifying modified image..."
-if ! qemu-img check base-disk.qcow2 >/dev/null 2>&1; then
+if ! qemu-img check "${WORK_DIR}/base-disk.qcow2" >/dev/null 2>&1; then
     echo "ERROR: Modified image failed integrity check"
     exit 1
 fi
@@ -206,9 +213,9 @@ fi
 # Show final image information
 echo ""
 echo "=== Modified Image Information ==="
-qemu-img info base-disk.qcow2
+qemu-img info "${WORK_DIR}/base-disk.qcow2"
 echo ""
-echo "Image size on disk: $(du -h base-disk.qcow2 | cut -f1)"
+echo "Image size on disk: $(du -h "${WORK_DIR}/base-disk.qcow2" | cut -f1)"
 
 echo "✅ Disk image modification completed successfully"
 echo "Modified image ready for containerization at: ${WORK_DIR}/base-disk.qcow2"
