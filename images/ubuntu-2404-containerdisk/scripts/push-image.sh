@@ -4,6 +4,8 @@ set -euo pipefail
 echo "=== Pushing containerdisk image ==="
 cd "${WORK_DIR}"
 
+# Ensure IMAGE_NAME is lowercase for registry compatibility
+IMAGE_NAME=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
 IMAGE_FULL_NAME="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
 # Check if image exists locally

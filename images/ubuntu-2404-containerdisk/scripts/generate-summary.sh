@@ -6,6 +6,8 @@ cd "${WORK_DIR}"
 
 # Gather build information
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+# Ensure IMAGE_NAME is lowercase for registry compatibility
+IMAGE_NAME=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
 IMAGE_FULL_NAME="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
 echo "## ContainerDisk Build Summary"
