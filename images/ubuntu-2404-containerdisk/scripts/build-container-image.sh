@@ -56,6 +56,7 @@ echo "Generated Dockerfile:"
 cat Dockerfile
 
 # Build and tag image
+IMAGE_NAME=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
 IMAGE_FULL_NAME="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 echo "Building image: $IMAGE_FULL_NAME"
 
