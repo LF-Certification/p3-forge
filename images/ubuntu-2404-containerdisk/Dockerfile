@@ -21,7 +21,7 @@ RUN DISK_FILE=$(find /image -type f -name 'disk.img' -print -quit) && \
     qemu-img info "$DISK_FILE" | grep -q "file format: qcow2" || { echo "Error: Disk image is not in QCOW2 format"; exit 1; } && \
     mv "$DISK_FILE" /original.qcow2
 
-RUN qemu-img resize -f qcow2 /original.qcow2 64G
+RUN qemu-img resize -f qcow2 /original.qcow2 16G
 
 # Stage 2: Create the final containerdisk image
 FROM scratch
