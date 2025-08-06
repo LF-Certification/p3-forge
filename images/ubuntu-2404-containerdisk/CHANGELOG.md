@@ -1,5 +1,15 @@
 # Changelog
 
+## [ubuntu-2404-containerdisk-v1.0.0] - 2025-08-06
+
+### 🚀 Features
+
+- [**breaking**] Prepare v1
+
+### 🐛 Bug Fixes
+
+- Reduce containerdisk size to 16Gi
+
 ## [ubuntu-2404-containerdisk-v0.2.0] - 2025-08-05
 
 ### 🚀 Features
