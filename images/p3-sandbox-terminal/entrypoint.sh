@@ -29,11 +29,11 @@ fi
 
 chmod 600 "$SSH_IDENTITY_FILE"
 
-SSH_OPTS="-i $SSH_IDENTITY_FILE -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
+SSH_OPTS="-i $SSH_IDENTITY_FILE -o StrictHostKeyChecking=accept-new -o BatchMode=yes -t"
 if [ "$SSH_USER" = "$TARGET_USER" ]; then
     SSH_COMMAND="ssh $SSH_OPTS ${SSH_USER}@${TARGET_HOST}"
 else
-    SSH_COMMAND="ssh $SSH_OPTS ${SSH_USER}@${TARGET_HOST} sudo su - ${TARGET_USER}"
+    SSH_COMMAND="ssh $SSH_OPTS ${SSH_USER}@${TARGET_HOST} sudo -i -u ${TARGET_USER}"
 fi
 
 exec ttyd -W tmux new-session -A -s remote "while true; do $SSH_COMMAND || echo \"SSH failed with exit code \$?\"; echo \"Reconnecting in $RETRY_INTERVAL seconds...\"; sleep $RETRY_INTERVAL; done"
