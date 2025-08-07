@@ -30,9 +30,13 @@ for arg in "$@"; do
     esac
 done
 
-# In CI mode, use the before commit if available
 if [ -n "${GITHUB_EVENT_BEFORE:-}" ] && [ "${GITHUB_EVENT_BEFORE}" != "0000000000000000000000000000000000000000" ]; then
+    # If set, then let's use that because that points to a commit sha before the current push event.
     BASE_REF="${GITHUB_EVENT_BEFORE}"
+elif [ -n "${GITHUB_EVENT_BEFORE:-}" ] && [ "${GITHUB_EVENT_BEFORE}" == "0000000000000000000000000000000000000000" ]; then
+    # The env var will be "000.000" in a PR or branch so we'll use a different approach:
+    # Attempt to find the merge base (common ancestor) between the current BASE_REF (origin/main) and HEAD
+    BASE_REF=$(git merge-base "${BASE_REF}" HEAD 2>/dev/null || echo "${BASE_REF}")
 fi
 
 # Get changed files in images/ directory
