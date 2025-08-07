@@ -35,8 +35,8 @@ fi
 # Check if a tmux session named 'remote' exists
 if tmux has-session -t remote 2>/dev/null; then
     # If it exists, attach to the session
-    exec ttyd tmux attach-session -t remote
+    exec ttyd -W tmux attach-session -t remote
 else
     # If it doesn't exist, create a new session with the SSH command and auto-reconnect loop
-    exec ttyd tmux new-session -s remote "while true; do $SSH_COMMAND || echo 'SSH failed with exit code $?.'; echo 'Reconnecting in $RETRY_INTERVAL seconds...'; sleep $RETRY_INTERVAL; done"
+    exec ttyd -W tmux new-session -s remote "while true; do $SSH_COMMAND || echo 'SSH failed with exit code $?.'; echo 'Reconnecting in $RETRY_INTERVAL seconds...'; sleep $RETRY_INTERVAL; done"
 fi
