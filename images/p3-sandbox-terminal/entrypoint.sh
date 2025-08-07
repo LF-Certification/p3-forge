@@ -32,11 +32,5 @@ else
     SSH_COMMAND="ssh -i $SSH_IDENTITY_FILE ${SSH_USER}@${TARGET_HOST} sudo su - ${TARGET_USER}"
 fi
 
-# Check if a tmux session named 'remote' exists
-if tmux has-session -t remote 2>/dev/null; then
-    # If it exists, attach to the session
-    exec ttyd -W tmux attach-session -t remote
-else
-    # If it doesn't exist, create a new session with the SSH command and auto-reconnect loop
-    exec ttyd -W tmux new-session -s remote "while true; do $SSH_COMMAND || echo 'SSH failed with exit code $?.'; echo 'Reconnecting in $RETRY_INTERVAL seconds...'; sleep $RETRY_INTERVAL; done"
-fi
+# Run ttyd with tmux new-session -A (attach if exists, else create) and the auto-reconnect loop as the session command
+exec ttyd -W tmux new-session -A -s remote "while true; do $SSH_COMMAND || echo 'SSH failed with exit code \$?.'; echo 'Reconnecting in $RETRY_INTERVAL seconds...'; sleep $RETRY_INTERVAL; done"
