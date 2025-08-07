@@ -71,6 +71,9 @@ make release images/alpine
 
 # Or use dynamic target
 make release-alpine
+
+# IMPORTANT: Push the newly created tag to trigger the release workflow
+git push origin --follow-tags
 ```
 
 ### Development
