@@ -29,7 +29,7 @@ fi
 
 chmod 600 "$SSH_IDENTITY_FILE"
 
-SSH_OPTS="-i $SSH_IDENTITY_FILE -o StrictHostKeyChecking=accept-new -o BatchMode=yes -t"
+SSH_OPTS="-i $SSH_IDENTITY_FILE -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o UserKnownHostsFile=/dev/null -t"
 if [ "$SSH_USER" = "$TARGET_USER" ]; then
     SSH_COMMAND="ssh $SSH_OPTS ${SSH_USER}@${TARGET_HOST}"
 else
