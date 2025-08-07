@@ -29,7 +29,7 @@ fi
 if [ "$SSH_USER" = "$TARGET_USER" ]; then
     SSH_COMMAND="ssh -i $SSH_IDENTITY_FILE ${SSH_USER}@${TARGET_HOST}"
 else
-    SSH_COMMAND="ssh -i $SSH_IDENTITY_FILE ${SSH_USER}@${TARGET_HOST} su - ${TARGET_USER}"
+    SSH_COMMAND="ssh -i $SSH_IDENTITY_FILE ${SSH_USER}@${TARGET_HOST} sudo su - ${TARGET_USER}"
 fi
 
 # Check if a tmux session named 'remote' exists
