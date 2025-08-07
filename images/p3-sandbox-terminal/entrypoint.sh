@@ -33,7 +33,7 @@ SSH_OPTS="-i $SSH_IDENTITY_FILE -o StrictHostKeyChecking=accept-new -o BatchMode
 if [ "$SSH_USER" = "$TARGET_USER" ]; then
     SSH_COMMAND="ssh $SSH_OPTS ${SSH_USER}@${TARGET_HOST}"
 else
-    SSH_COMMAND="ssh $SSH_OPTS ${SSH_USER}@${TARGET_HOST} sudo -i -u ${TARGET_USER}"
+    SSH_COMMAND="ssh $SSH_OPTS ${SSH_USER}@${TARGET_HOST} 'sudo sh -c \"mkdir -p ~${TARGET_USER}/.ssh && cp ~/.ssh/authorized_keys ~${TARGET_USER}/.ssh/ && chown -R ${TARGET_USER}:${TARGET_USER} ~${TARGET_USER}/.ssh && chmod 700 ~${TARGET_USER}/.ssh && chmod 600 ~${TARGET_USER}/.ssh/authorized_keys\" 2>/dev/null' ; ssh $SSH_OPTS ${TARGET_USER}@${TARGET_HOST}"
 fi
 
 exec ttyd -W tmux new-session -A -s remote "while true; do $SSH_COMMAND || echo \"SSH failed with exit code \$?\"; echo \"Reconnecting in $RETRY_INTERVAL seconds...\"; sleep $RETRY_INTERVAL; done"
