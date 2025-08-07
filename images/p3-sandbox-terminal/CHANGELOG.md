@@ -1,5 +1,23 @@
 # Changelog
 
+## [p3-sandbox-terminal-v1.1.0] - 2025-08-07
+
+### 🚀 Features
+
+- Allow terminal to autoconnect to remote host
+
+### 🐛 Bug Fixes
+
+- Ensure clients can write to ttyd
+- Wrap 'su' in 'sudo' to skip password auth
+- Have ttyd run tmux new-session -A to auto-attach if already present
+- Ensure command works in non-interactive mode
+- Allocate a tty session for the target user
+
+### 🚜 Refactor
+
+- Suppress ssh client warning message
+
 ## [p3-sandbox-terminal-v1.0.0] - 2025-07-26
 
 ### 🚀 Features
