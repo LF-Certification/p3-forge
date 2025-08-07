@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-ui-v1.2.1] - 2025-08-07
+
+### 🚜 Refactor
+
+- Update page title to LF Education
+
 ## [p3-sandbox-ui-v1.2.0] - 2025-07-30
 
 ### 🚀 Features
