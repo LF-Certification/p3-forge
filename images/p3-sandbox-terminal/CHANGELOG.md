@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-terminal-v1.2.0] - 2025-08-08
+
+### 🚀 Features
+
+- Connect directly as target user
+
 ## [p3-sandbox-terminal-v1.1.0] - 2025-08-07
 
 ### 🚀 Features
