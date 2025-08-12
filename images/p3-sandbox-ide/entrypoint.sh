@@ -14,7 +14,6 @@ fi
 
 # Set defaults for optional variables
 WORKSPACE_DIR=${WORKSPACE_DIR:-"/home/$TARGET_USER"}
-PASSWORD=${PASSWORD:-"password"}
 SSHFS_MOUNT_POINT="$HOME/workspace"
 
 echo "Starting IDE container with the following configuration:"
@@ -147,6 +146,6 @@ fi
 echo "Starting code-server..."
 exec code-server \
     --bind-addr 0.0.0.0:8080 \
-    --auth password \
+    --auth none \
     --disable-telemetry \
     "$SSHFS_MOUNT_POINT"
