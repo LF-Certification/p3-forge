@@ -1,0 +1,66 @@
+# P3 Sandbox IDE
+
+A web-based IDE container built on code-server that automatically connects to remote hosts via SSHFS for seamless file editing.
+
+## Features
+
+- **Automatic SSHFS mounting**: Connects to remote hosts and mounts their filesystem
+- **SSH connectivity testing**: Robust connection handling with retries
+- **Web-based IDE**: Full VS Code experience in the browser
+- **Configurable workspace**: Support for custom remote directories
+- **Clean error handling**: Graceful fallback and proper cleanup
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `TARGET_HOST` | Yes | - | Hostname or IP of the target host to connect to |
+| `TARGET_USER` | Yes | - | Username for SSH connection to target host |
+| `WORKSPACE_DIR` | No | `/home/$TARGET_USER` | Remote directory to mount as workspace |
+| `PASSWORD` | No | `password` | Password for code-server web interface |
+
+## Volume Mounts
+
+The container expects SSH credentials to be mounted at:
+- `/home/coder/.ssh/id_rsa` - SSH private key
+- `/home/coder/.ssh/config` - SSH configuration (optional)
+
+## How It Works
+
+1. **SSH Setup**: Configures SSH with provided keys and config
+2. **Connection Testing**: Tests SSH connectivity with retries (up to 30 attempts)
+3. **SSHFS Mounting**: Mounts remote filesystem to `/home/coder/workspace`
+4. **Code-Server**: Starts VS Code server with the mounted workspace
+5. **Cleanup**: Properly unmounts SSHFS on container shutdown
+
+## Integration with Sandbox Operator
+
+When used with the P3 Sandbox Operator, the IDE tool automatically:
+- Receives SSH keys from the sandbox's SSH secret
+- Gets target host/user configuration from the tool definition
+- Provides a web interface accessible through the sandbox ingress
+
+## Example Usage
+
+```yaml
+tools:
+  - name: my-ide
+    ide:
+      version: v0.2.0
+      targetHost: my-server
+      targetUser: developer
+      workspaceDir: /opt/project  # optional
+```
+
+This creates an IDE that connects to `my-server` as user `developer` and opens the `/opt/project` directory.
+
+## Troubleshooting
+
+If the IDE fails to connect:
+
+1. **Check SSH connectivity**: Ensure target host is reachable and SSH service is running
+2. **Verify SSH keys**: Confirm SSH keys are properly mounted and have correct permissions
+3. **Check user permissions**: Ensure target user exists and has appropriate file permissions
+4. **Review logs**: Container logs provide detailed connection and mounting information
+
+The IDE will start even if SSHFS mounting fails, allowing access to local tools and debugging.

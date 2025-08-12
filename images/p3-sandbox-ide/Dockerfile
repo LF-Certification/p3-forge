@@ -1,18 +1,34 @@
-# Basic Dockerfile - customize as needed
-FROM alpine:3.19
-# OCI labels for package linking and metadata
-LABEL org.opencontainers.image.source="https://github.com/lf-certification/sandbox-images"
-LABEL org.opencontainers.image.title="p3-sandbox-ide"
-LABEL org.opencontainers.image.description="Container image for p3/sandbox/ide"
+FROM codercom/code-server:4.22.0
 
-RUN apk update && \
-    apk add --no-cache ca-certificates && \
-    rm -rf /var/cache/apk/*
+# Install necessary packages for SSHFS and SSH
+USER root
+RUN apt-get update && \
+    apt-get install -y \
+    openssh-client \
+    sshfs \
+    fuse \
+    jq \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN addgroup -g 1001 appuser && \
-    adduser -D -u 1001 -G appuser appuser
+# Allow non-root users to use FUSE
+RUN echo "user_allow_other" >> /etc/fuse.conf
 
-USER appuser
-WORKDIR /app
+# Create workspace directory
+RUN mkdir -p /home/coder/workspace && \
+    chown -R coder:coder /home/coder/workspace
 
-CMD ["/bin/sh"]
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Switch back to coder user
+USER coder
+
+# Set working directory
+WORKDIR /home/coder
+
+# Expose code-server port
+EXPOSE 8080
+
+ENTRYPOINT ["/entrypoint.sh"]
