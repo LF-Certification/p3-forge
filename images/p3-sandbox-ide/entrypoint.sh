@@ -38,7 +38,10 @@ fi
 
 # Create SSH directory if it doesn't exist
 mkdir -p ~/.ssh
-chmod 700 ~/.ssh
+
+# Fix ownership and permissions using sudo (needed for Kubernetes-mounted files)
+sudo chown -R coder:coder ~/.ssh
+sudo chmod 700 ~/.ssh
 
 # Set proper permissions for SSH key if it exists
 if [ -f ~/.ssh/id_rsa ]; then

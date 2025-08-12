@@ -9,10 +9,14 @@ RUN apt-get update && \
     fuse3 \
     jq \
     curl \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # Allow non-root users to use FUSE
 RUN echo "user_allow_other" >> /etc/fuse.conf
+
+# Allow coder user to use sudo for fixing file permissions
+RUN echo "coder ALL=(ALL) NOPASSWD: /bin/chown, /bin/chmod" >> /etc/sudoers
 
 # Create workspace directory
 RUN mkdir -p /home/coder/workspace && \
