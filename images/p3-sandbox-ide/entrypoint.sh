@@ -23,6 +23,19 @@ echo "  Target User: $TARGET_USER"
 echo "  Remote Workspace: $WORKSPACE_DIR"
 echo "  Local Mount Point: $SSHFS_MOUNT_POINT"
 
+echo "Debug information:"
+echo "  Current user: $(whoami)"
+echo "  Current UID: $(id -u)"
+echo "  Current GID: $(id -g)"
+echo "  Current groups: $(id -G)"
+echo "  Home directory: $HOME"
+echo "  SSH directory: ~/.ssh"
+echo "  SSH directory exists: $([ -d ~/.ssh ] && echo 'yes' || echo 'no')"
+if [ -d ~/.ssh ]; then
+    echo "  SSH directory permissions: $(ls -ld ~/.ssh)"
+    echo "  SSH directory owner: $(stat -c '%U:%G' ~/.ssh 2>/dev/null || stat -f '%Su:%Sg' ~/.ssh 2>/dev/null || echo 'unknown')"
+fi
+
 # Create SSH directory if it doesn't exist
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
