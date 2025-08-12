@@ -42,8 +42,16 @@ if [ ! -f "$SSH_KEY_PATH" ]; then
     exit 1
 fi
 
-# Set proper SSH key permissions (important for SSHFS)
-chmod 600 "$SSH_KEY_PATH"
+# Check SSH key permissions (should already be 600 from projected volume)
+key_perms=$(stat -c '%a' "$SSH_KEY_PATH" 2>/dev/null || stat -f '%Mp%Lp' "$SSH_KEY_PATH" 2>/dev/null || echo "unknown")
+echo "SSH key permissions: $key_perms"
+if [ "$key_perms" != "600" ] && [ "$key_perms" != "unknown" ]; then
+    echo "WARNING: SSH key permissions are $key_perms, expected 600"
+    # Try to fix permissions if possible (will fail on read-only filesystem)
+    if ! chmod 600 "$SSH_KEY_PATH" 2>/dev/null; then
+        echo "INFO: Cannot change SSH key permissions (read-only filesystem), continuing anyway"
+    fi
+fi
 
 # Validate mount point exists
 if [ ! -d "$MOUNT_POINT" ]; then
