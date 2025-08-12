@@ -1,47 +1,39 @@
 # P3 Sandbox IDE
 
-A web-based IDE container built on code-server that automatically syncs with remote hosts via rsync for seamless file editing.
+A simplified web-based IDE container built on code-server that works with local filesystems. When used with the P3 Sandbox Operator, the workspace can be pre-mounted by an SSHFS init container for seamless remote file access.
 
 ## Features
 
-- **Automatic rsync synchronization**: Connects to remote hosts and syncs their filesystem bidirectionally
-- **SSH connectivity testing**: Robust connection handling with retries
+- **Simplified local filesystem access**: Works directly with mounted or local workspaces
 - **Web-based IDE**: Full VS Code experience in the browser
-- **Configurable workspace**: Support for custom remote directories
-- **Clean error handling**: Graceful fallback and proper cleanup
+- **SSHFS integration**: Automatically detects and uses SSHFS-mounted remote workspaces
+- **Fallback support**: Gracefully handles local-only workspaces when remote mounting fails
 - **Security hardening**: Runs as non-root user (UID 1000) with dropped capabilities
 
 ## Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `TARGET_HOST` | Yes | - | Hostname or IP of the target host to connect to |
-| `TARGET_USER` | Yes | - | Username for SSH connection to target host |
-| `REMOTE_WORKDIR` | Yes | - | Remote directory to sync as workspace |
-| `LOCAL_WORKDIR` | No | `$HOME/workspace` | Local directory path for workspace mount point |
-| `SYNC_INTERVAL` | No | `30` | Sync interval in seconds for background daemon |
-| `PASSWORD` | No | `password` | Password for code-server web interface |
+| `LOCAL_WORKDIR` | No | `$HOME/workspace` | Local directory path for workspace |
 
 ## Volume Mounts
 
-The container expects SSH credentials to be mounted at:
-- `/home/user/.ssh/id_rsa` - SSH private key
-- `/home/user/.ssh/config` - SSH configuration (optional)
+The container expects:
+- Workspace volume mounted at `/home/coder/workspace` (or `$LOCAL_WORKDIR`)
 
 ## How It Works
 
-1. **SSH Setup**: Configures SSH with provided keys and config
-2. **Connection Testing**: Tests SSH connectivity with retries (up to 30 attempts)
-3. **Initial Sync**: Downloads remote files to `/home/user/workspace`
-4. **Background Daemon**: Starts bidirectional sync daemon for continuous synchronization
-5. **Code-Server**: Starts VS Code server with the synced workspace
-6. **Cleanup**: Stops sync daemon and performs final sync on container shutdown
+1. **Workspace Detection**: Checks for workspace directory availability
+2. **SSHFS Detection**: Detects if workspace is SSHFS-mounted via status file
+3. **Code-Server Startup**: Starts VS Code server with the available workspace
+4. **Clean Operation**: No background processes or sync daemons needed
 
 ## Integration with Sandbox Operator
 
-When used with the P3 Sandbox Operator, the IDE tool automatically:
-- Receives SSH keys from the sandbox's SSH secret
-- Gets target host/user configuration from the tool definition
+When used with the P3 Sandbox Operator, the IDE tool:
+- Uses an SSHFS init container to pre-mount remote workspaces
+- Automatically detects mounted remote filesystems
+- Falls back to local workspace when remote mounting fails
 - Provides a web interface accessible through the sandbox ingress
 
 ## Example Usage
@@ -50,13 +42,13 @@ When used with the P3 Sandbox Operator, the IDE tool automatically:
 tools:
   - name: my-ide
     ide:
-      version: v0.2.0
+      version: v1.1.0
       targetHost: my-server
       targetUser: developer
       workspaceDir: /opt/project  # optional
 ```
 
-This creates an IDE that connects to `my-server` as user `developer` and opens the `/opt/project` directory.
+This creates an IDE with an init container that mounts `my-server:/opt/project` via SSHFS, making it available to the main IDE container.
 
 ## Security Context
 
@@ -87,12 +79,12 @@ This configuration ensures:
 
 ## Troubleshooting
 
-If the IDE fails to connect:
+If the IDE fails to work correctly:
 
-1. **Check SSH connectivity**: Ensure target host is reachable and SSH service is running
-2. **Verify SSH keys**: Confirm SSH keys are properly mounted and have correct permissions
-3. **Check user permissions**: Ensure target user exists and has appropriate file permissions
-4. **Review logs**: Container logs provide detailed connection and sync information
-5. **Check sync daemon**: Review `/tmp/sync.log` for background sync status
+1. **Check workspace mount**: Verify the workspace volume is properly mounted
+2. **Review container logs**: Look for workspace detection and SSHFS status messages
+3. **Verify SSHFS init container**: If using remote workspaces, check init container logs
+4. **Check file permissions**: Ensure workspace has proper permissions for UID 1000
+5. **Local fallback**: The IDE will work with local workspace even if remote mounting fails
 
-The IDE will start even if initial sync fails, allowing access to local tools and debugging. The sync daemon will continue attempting to establish connectivity in the background.
+The simplified architecture eliminates most connection and sync issues by handling remote mounting at the init container level.
