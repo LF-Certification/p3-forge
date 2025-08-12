@@ -24,6 +24,7 @@ RUN chmod +x /entrypoint.sh
 # Switch to UID 1000 and set HOME
 USER 1000
 ENV HOME=/home/user
+ENV SHELL=/bin/bash
 
 # Set working directory
 WORKDIR /home/user
