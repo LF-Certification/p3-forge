@@ -15,7 +15,7 @@ fi
 # Set defaults for optional variables
 WORKSPACE_DIR=${WORKSPACE_DIR:-"/home/$TARGET_USER"}
 PASSWORD=${PASSWORD:-"password"}
-SSHFS_MOUNT_POINT="/home/coder/workspace"
+SSHFS_MOUNT_POINT="$HOME/workspace"
 
 echo "Starting IDE container with the following configuration:"
 echo "  Target Host: $TARGET_HOST"

@@ -9,6 +9,7 @@ A web-based IDE container built on code-server that automatically connects to re
 - **Web-based IDE**: Full VS Code experience in the browser
 - **Configurable workspace**: Support for custom remote directories
 - **Clean error handling**: Graceful fallback and proper cleanup
+- **Security hardening**: Runs as non-root user (UID 1000) with dropped capabilities
 
 ## Environment Variables
 
@@ -22,14 +23,14 @@ A web-based IDE container built on code-server that automatically connects to re
 ## Volume Mounts
 
 The container expects SSH credentials to be mounted at:
-- `/home/coder/.ssh/id_rsa` - SSH private key
-- `/home/coder/.ssh/config` - SSH configuration (optional)
+- `/home/user/.ssh/id_rsa` - SSH private key
+- `/home/user/.ssh/config` - SSH configuration (optional)
 
 ## How It Works
 
 1. **SSH Setup**: Configures SSH with provided keys and config
 2. **Connection Testing**: Tests SSH connectivity with retries (up to 30 attempts)
-3. **SSHFS Mounting**: Mounts remote filesystem to `/home/coder/workspace`
+3. **SSHFS Mounting**: Mounts remote filesystem to `/home/user/workspace`
 4. **Code-Server**: Starts VS Code server with the mounted workspace
 5. **Cleanup**: Properly unmounts SSHFS on container shutdown
 
@@ -53,6 +54,33 @@ tools:
 ```
 
 This creates an IDE that connects to `my-server` as user `developer` and opens the `/opt/project` directory.
+
+## Security Context
+
+The IDE container is designed to run securely with the following security context:
+
+```yaml
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  capabilities:
+    drop: ["ALL"]
+  readOnlyRootFilesystem: false  # SSHFS needs write access
+  allowPrivilegeEscalation: false
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  fsGroup: 1000  # Ensures mounted volumes have correct permissions
+```
+
+This configuration ensures:
+- Container runs as UID/GID 1000 (non-root)
+- All Linux capabilities are dropped for security
+- No privilege escalation is allowed
+- Volume permissions are managed via fsGroup
 
 ## Troubleshooting
 

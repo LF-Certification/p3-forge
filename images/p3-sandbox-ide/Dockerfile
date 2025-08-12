@@ -15,19 +15,20 @@ RUN apt-get update && \
 RUN echo "user_allow_other" >> /etc/fuse.conf
 
 
-# Create workspace directory
-RUN mkdir -p /home/coder/workspace && \
-    chown -R coder:coder /home/coder/workspace
+# Create user directory and workspace for UID 1000
+RUN mkdir -p /home/user/.ssh /home/user/workspace && \
+    chown -R 1000:1000 /home/user
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Switch back to coder user
-USER coder
+# Switch to UID 1000 and set HOME
+USER 1000
+ENV HOME=/home/user
 
 # Set working directory
-WORKDIR /home/coder
+WORKDIR /home/user
 
 # Expose code-server port
 EXPOSE 8080
