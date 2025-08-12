@@ -148,6 +148,5 @@ echo "Starting code-server..."
 exec code-server \
     --bind-addr 0.0.0.0:8080 \
     --auth password \
-    --password "$PASSWORD" \
     --disable-telemetry \
     "$SSHFS_MOUNT_POINT"
