@@ -41,25 +41,7 @@ mkdir -p ~/.ssh
 if [ -d ~/.ssh ]; then
     echo "  SSH directory permissions: $(ls -ld ~/.ssh)"
     echo "  SSH directory owner: $(stat -c '%U:%G' ~/.ssh 2>/dev/null || stat -f '%Su:%Sg' ~/.ssh 2>/dev/null || echo 'unknown')"
-fi
-
-# Set proper permissions for SSH directory
-chmod 700 ~/.ssh
-
-# Check SSH key and set permissions if possible
-if [ -f ~/.ssh/id_rsa ]; then
-    echo "Found SSH private key at ~/.ssh/id_rsa"
-    # Try to set permissions, but don't fail if it's read-only (mounted from secret)
-    chmod 600 ~/.ssh/id_rsa 2>/dev/null || echo "Note: SSH key is read-only (likely mounted from Kubernetes secret)"
-else
-    echo "Warning: No SSH private key found at ~/.ssh/id_rsa"
-fi
-
-# Check SSH config and set permissions if possible
-if [ -f ~/.ssh/config ]; then
-    echo "Found SSH config at ~/.ssh/config"
-    # Try to set permissions, but don't fail if it's read-only (mounted from configmap)
-    chmod 600 ~/.ssh/config 2>/dev/null || echo "Note: SSH config is read-only (likely mounted from Kubernetes configmap)"
+    echo "  SSH directory file permissions: $(ls -al ~/.ssh)"
 fi
 
 SSH_OPTS="-o StrictHostKeyChecking=accept-new -o BatchMode=yes -o UserKnownHostsFile=/dev/null -t"
