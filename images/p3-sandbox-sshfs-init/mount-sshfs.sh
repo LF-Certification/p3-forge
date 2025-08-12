@@ -1,13 +1,8 @@
 #!/bin/bash
 set -e
 
-# SSHFS Init Container Mount Script
-# This script mounts a remote filesystem via SSHFS in a privileged init container
-# The mounted filesystem is then accessible to the main container via shared volume
+echo "Starting SSHFS container..."
 
-echo "Starting SSHFS init container..."
-
-# Validate required environment variables
 if [ -z "$TARGET_HOST" ]; then
     echo "ERROR: TARGET_HOST environment variable is required"
     exit 1
@@ -29,6 +24,8 @@ SSH_KEY_PATH=${SSH_KEY_PATH:-"/home/coder/.ssh/id_rsa"}
 SSH_CONFIG_PATH=${SSH_CONFIG_PATH:-"/home/coder/.ssh/config"}
 MAX_RETRIES=${MAX_RETRIES:-10}
 RETRY_DELAY=${RETRY_DELAY:-5}
+SSHFS_UID=${SSHFS_UID:-1000}
+SSHFS_GID=${SSHFS_GID:-1000}
 
 echo "Configuration:"
 echo "  Target: $TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR"
@@ -51,13 +48,6 @@ if [ "$key_perms" != "600" ] && [ "$key_perms" != "unknown" ]; then
     if ! chmod 600 "$SSH_KEY_PATH" 2>/dev/null; then
         echo "INFO: Cannot change SSH key permissions (read-only filesystem), continuing anyway"
     fi
-fi
-
-# Ensure parent directory exists and create mount point
-PARENT_DIR=$(dirname "$MOUNT_POINT")
-if [ ! -d "$PARENT_DIR" ]; then
-    echo "ERROR: Parent directory $PARENT_DIR does not exist"
-    exit 1
 fi
 
 # Create mount point directory if it doesn't exist
@@ -118,23 +108,28 @@ if ! ssh -o ConnectTimeout=10 \
     echo "Remote directory created successfully"
 fi
 
+sshfs_cmd=(sshfs
+    -o StrictHostKeyChecking=no
+    -o UserKnownHostsFile=/dev/null
+    -o IdentityFile="$SSH_KEY_PATH"
+    -o allow_other
+    -o default_permissions
+    -o uid=$SSHFS_UID
+    -o gid=$SSHFS_GID
+    -o reconnect
+    -o ServerAliveInterval=15
+    -o ServerAliveCountMax=3
+    -o compression=yes
+    -o ssh_command="ssh -t $TARGET_USER@$TARGET_HOST sudo -n"
+)
+
 # Mount the remote filesystem using SSHFS
 echo "Mounting remote filesystem via SSHFS..."
 retry_count=0
 while [ $retry_count -lt $MAX_RETRIES ]; do
-    if sshfs -o StrictHostKeyChecking=no \
-             -o UserKnownHostsFile=/dev/null \
-             -o IdentityFile="$SSH_KEY_PATH" \
-             -o allow_other \
-             -o default_permissions \
-             -o uid=1000 \
-             -o gid=1000 \
-             -o umask=022 \
-             -o reconnect \
-             -o ServerAliveInterval=15 \
-             -o ServerAliveCountMax=3 \
-             "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR" \
-             "$MOUNT_POINT" 2>/dev/null; then
+    if "${sshfs_cmd[@]}" \
+       "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR" \
+       "$MOUNT_POINT" 2>/dev/null; then
         echo "SSHFS mount successful"
         break
     else
@@ -162,51 +157,51 @@ else
     exit 1
 fi
 
-# Create a marker file to indicate successful mount (in parent shared directory)
-echo "sshfs-mounted" > "$PARENT_DIR/.sshfs-status"
-echo "remote-path: $MOUNT_POINT" > "$PARENT_DIR/.sshfs-info"
 echo "SUCCESS: Remote filesystem mounted successfully at $MOUNT_POINT"
 
-# Check if running as sidecar (keeps mount alive) or init container (one-time mount)
-if [ "$SIDECAR_MODE" = "true" ]; then
-    echo "Running in sidecar mode - keeping SSHFS mount alive"
-
-    # Create a monitoring loop to ensure mount stays active
-    while true; do
-        # Check if mount is still active
-        if ! mount | grep -q "$MOUNT_POINT"; then
-            echo "SSHFS mount lost, attempting to remount..."
-
-            # Attempt to remount
-            if sshfs -o StrictHostKeyChecking=no \
-                     -o UserKnownHostsFile=/dev/null \
-                     -o IdentityFile="$SSH_KEY_PATH" \
-                     -o allow_other \
-                     -o default_permissions \
-                     -o uid=1000 \
-                     -o gid=1000 \
-                     -o umask=022 \
-                     -o reconnect \
-                     -o ServerAliveInterval=15 \
-                     -o ServerAliveCountMax=3 \
-                     "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR" \
-                     "$MOUNT_POINT" 2>/dev/null; then
-                echo "SSHFS remount successful"
-                echo "sshfs-mounted" > "$PARENT_DIR/.sshfs-status"
-                echo "remote-path: $MOUNT_POINT" > "$PARENT_DIR/.sshfs-info"
+# Ensure we exit cleanly when the cluster kills the pod
+cleanup() {
+    echo "Received SIGTERM, unmounting SSHFS..."
+    retry_count=0
+    while [ $retry_count -lt 3 ]; do
+        if mount | grep -q "[[:space:]]$MOUNT_POINT[[:space:]]"; then
+            if umount -f "$MOUNT_POINT" 2>/tmp/umount_error; then
+                echo "SSHFS unmounted successfully"
+                break
             else
-                echo "SSHFS remount failed, will retry..."
+                retry_count=$((retry_count + 1))
+                echo "Failed to unmount SSHFS, retry $retry_count/3: $(cat /tmp/umount_error)"
+                sleep 2
             fi
+        else
+            echo "No SSHFS mount found at $MOUNT_POINT"
+            break
         fi
-
-        # Check every 30 seconds
-        sleep 30
     done
-else
-    echo "Running in init container mode"
-    # Keep the container running briefly to ensure mount is stable
-    echo "Waiting 5 seconds to ensure mount stability..."
-    sleep 5
+    if [ $retry_count -eq 3 ]; then
+        echo "Failed to unmount SSHFS after retries"
+    fi
+    echo "Exiting..."
+    exit 0
+}
+trap cleanup SIGTERM SIGINT
 
-    echo "SSHFS init container completed successfully"
-fi
+# Create a monitoring loop to ensure mount stays active
+while true; do
+    # Check if mount is still active
+    if ! mount | grep -q "$MOUNT_POINT"; then
+        echo "SSHFS mount lost, attempting to remount..."
+
+        # Attempt to remount
+        if "${sshfs_cmd[@]}" \
+           "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR" \
+           "$MOUNT_POINT" 2>/dev/null; then
+            echo "SSHFS remount successful"
+        else
+            echo "SSHFS remount failed, will retry..."
+        fi
+    fi
+
+    # Check every 30 seconds
+    sleep 30
+done
