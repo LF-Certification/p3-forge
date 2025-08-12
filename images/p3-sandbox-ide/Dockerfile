@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get install -y \
     openssh-client \
     sshfs \
-    fuse \
+    fuse3 \
     jq \
     curl \
     && rm -rf /var/lib/apt/lists/*
