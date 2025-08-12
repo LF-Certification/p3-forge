@@ -39,9 +39,13 @@ fi
 # Create SSH directory if it doesn't exist
 mkdir -p ~/.ssh
 
-# Fix ownership and permissions using sudo (needed for Kubernetes-mounted files)
-sudo chown -R coder:coder ~/.ssh
-sudo chmod 700 ~/.ssh
+# Check if we can modify SSH directory permissions
+if [ "$(stat -c '%U' ~/.ssh)" != "coder" ]; then
+    echo "Warning: SSH directory is owned by $(stat -c '%U:%G' ~/.ssh), not coder:coder"
+    echo "SSH functionality may be limited. Consider using an init container or fsGroup to fix permissions."
+else
+    chmod 700 ~/.ssh
+fi
 
 # Set proper permissions for SSH key if it exists
 if [ -f ~/.ssh/id_rsa ]; then
