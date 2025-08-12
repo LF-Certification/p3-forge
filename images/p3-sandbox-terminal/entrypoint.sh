@@ -46,18 +46,20 @@ fi
 # Set proper permissions for SSH directory
 chmod 700 ~/.ssh
 
-# Set proper permissions for SSH key if it exists
+# Check SSH key and set permissions if possible
 if [ -f ~/.ssh/id_rsa ]; then
-    chmod 600 ~/.ssh/id_rsa
     echo "Found SSH private key at ~/.ssh/id_rsa"
+    # Try to set permissions, but don't fail if it's read-only (mounted from secret)
+    chmod 600 ~/.ssh/id_rsa 2>/dev/null || echo "Note: SSH key is read-only (likely mounted from Kubernetes secret)"
 else
     echo "Warning: No SSH private key found at ~/.ssh/id_rsa"
 fi
 
-# Set proper permissions for SSH config if it exists
+# Check SSH config and set permissions if possible
 if [ -f ~/.ssh/config ]; then
-    chmod 600 ~/.ssh/config
     echo "Found SSH config at ~/.ssh/config"
+    # Try to set permissions, but don't fail if it's read-only (mounted from configmap)
+    chmod 600 ~/.ssh/config 2>/dev/null || echo "Note: SSH config is read-only (likely mounted from Kubernetes configmap)"
 fi
 
 SSH_OPTS="-o StrictHostKeyChecking=accept-new -o BatchMode=yes -o UserKnownHostsFile=/dev/null -t"
