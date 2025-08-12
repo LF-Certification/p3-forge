@@ -47,57 +47,95 @@ test_ssh_connection() {
         "echo 'SSH connection successful'"
 }
 
-# Function to mount SSHFS
-# Function to mount SSHFS
+# Alternative approach: Use SSH with rsync for file sync
+sync_remote_files() {
+    echo "Using rsync for file synchronization..."
+
+    # Initial sync from remote to local
+    echo "Syncing remote files to local workspace..."
+    rsync -avz --delete \
+        -e "ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
+        "$TARGET_USER@$TARGET_HOST:$WORKSPACE_DIR/" \
+        "$SSHFS_MOUNT_POINT/"
+
+    if [ $? -eq 0 ]; then
+        echo "Initial sync completed successfully"
+
+        # Set up periodic sync in background
+        start_sync_daemon
+        return 0
+    else
+        echo "Initial sync failed"
+        return 1
+    fi
+}
+
+# Background sync daemon
+start_sync_daemon() {
+    echo "Starting background sync daemon..."
+
+    # Create sync script
+    cat > /tmp/sync_daemon.sh << 'EOF'
+#!/bin/bash
+SYNC_INTERVAL=${SYNC_INTERVAL:-30}  # seconds
+REMOTE_DIR="$1"
+LOCAL_DIR="$2"
+TARGET="$3"
+
+while true; do
+    # Sync remote changes to local
+    rsync -avz --delete --timeout=10 \
+        -e "ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
+        "$TARGET:$REMOTE_DIR/" "$LOCAL_DIR/" 2>/dev/null
+
+    # Sync local changes to remote (be careful with --delete here)
+    rsync -avz --timeout=10 \
+        -e "ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
+        "$LOCAL_DIR/" "$TARGET:$REMOTE_DIR/" 2>/dev/null
+
+    sleep $SYNC_INTERVAL
+done
+EOF
+
+    chmod +x /tmp/sync_daemon.sh
+
+    # Start daemon in background
+    nohup /tmp/sync_daemon.sh "$WORKSPACE_DIR" "$SSHFS_MOUNT_POINT" "$TARGET_USER@$TARGET_HOST" > /tmp/sync.log 2>&1 &
+    SYNC_PID=$!
+    echo $SYNC_PID > /tmp/sync_daemon.pid
+    echo "Sync daemon started with PID $SYNC_PID"
+    echo "Sync log: /tmp/sync.log"
+}
+
+# Function to sync files using rsync instead of SSHFS
 mount_sshfs() {
-    echo "Mounting remote directory $WORKSPACE_DIR via SSHFS..."
+    echo "Syncing remote directory $WORKSPACE_DIR via rsync..."
 
     # Ensure mount point exists
     mkdir -p "$SSHFS_MOUNT_POINT"
 
-    # Check if SSHFS is specifically already mounted (not just any mount)
-    if mount | grep -q "sshfs.*on $SSHFS_MOUNT_POINT "; then
-        echo "SSHFS already mounted at $SSHFS_MOUNT_POINT"
-        return 0
-    fi
-
-    # Check what's currently mounted and inform user
-    if mountpoint -q "$SSHFS_MOUNT_POINT"; then
-        echo "Detected existing mount at $SSHFS_MOUNT_POINT:"
-        findmnt "$SSHFS_MOUNT_POINT" | head -2
-        echo "Mounting SSHFS over existing mount..."
-    fi
-
-    # Mount with SSHFS - this will mount over the existing emptyDir
-    sshfs -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
-          -o StrictHostKeyChecking=accept-new \
-          -o UserKnownHostsFile=/dev/null \
-          -o allow_other \
-          "$TARGET_USER@$TARGET_HOST:$WORKSPACE_DIR" \
-          "$SSHFS_MOUNT_POINT"
-
-    if [ $? -eq 0 ]; then
-        # Double-check that SSHFS is actually mounted
-        if mount | grep -q "sshfs.*on $SSHFS_MOUNT_POINT "; then
-            echo "Successfully mounted $TARGET_USER@$TARGET_HOST:$WORKSPACE_DIR to $SSHFS_MOUNT_POINT"
-            return 0
-        else
-            echo "Mount command succeeded but SSHFS mount not detected"
-            mount | grep "$SSHFS_MOUNT_POINT" || echo "No mount found"
-            return 1
-        fi
-    else
-        echo "Failed to mount SSHFS"
-        return 1
-    fi
+    # Use rsync-based synchronization
+    sync_remote_files
+    return $?
 }
 
 # Function to cleanup on exit
 cleanup() {
     echo "Cleaning up..."
-    if mountpoint -q "$SSHFS_MOUNT_POINT"; then
-        echo "Unmounting SSHFS..."
-        fusermount -u "$SSHFS_MOUNT_POINT" || umount "$SSHFS_MOUNT_POINT" || true
+
+    # Stop sync daemon if running
+    if [ -f /tmp/sync_daemon.pid ]; then
+        SYNC_PID=$(cat /tmp/sync_daemon.pid)
+        if kill -0 $SYNC_PID 2>/dev/null; then
+            echo "Stopping sync daemon (PID: $SYNC_PID)..."
+            kill $SYNC_PID
+            # Final sync before exit
+            echo "Performing final sync..."
+            rsync -avz --timeout=10 \
+                -e "ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
+                "$SSHFS_MOUNT_POINT/" "$TARGET_USER@$TARGET_HOST:$WORKSPACE_DIR/" 2>/dev/null
+        fi
+        rm -f /tmp/sync_daemon.pid
     fi
 }
 
@@ -128,33 +166,33 @@ if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
     exit 1
 fi
 
-# Mount SSHFS with retries
-MOUNT_RETRIES=5
-MOUNT_COUNT=0
-while [ $MOUNT_COUNT -lt $MOUNT_RETRIES ]; do
+# Sync remote files with retries
+SYNC_RETRIES=5
+SYNC_COUNT=0
+while [ $SYNC_COUNT -lt $SYNC_RETRIES ]; do
     if mount_sshfs; then
-        echo "SSHFS mounted successfully"
+        echo "Remote file sync established successfully"
         break
     else
-        MOUNT_COUNT=$((MOUNT_COUNT + 1))
-        echo "SSHFS mount failed (attempt $MOUNT_COUNT/$MOUNT_RETRIES). Retrying in 3 seconds..."
+        SYNC_COUNT=$((SYNC_COUNT + 1))
+        echo "Remote sync failed (attempt $SYNC_COUNT/$SYNC_RETRIES). Retrying in 3 seconds..."
         sleep 3
     fi
 done
 
-if [ $MOUNT_COUNT -eq $MOUNT_RETRIES ]; then
-    echo "Error: Unable to mount SSHFS after $MOUNT_RETRIES attempts"
+if [ $SYNC_COUNT -eq $SYNC_RETRIES ]; then
+    echo "Error: Unable to sync remote files after $SYNC_RETRIES attempts"
     echo "Starting code-server without remote filesystem access..."
-    # Continue without SSHFS mount - user can still access local filesystem
+    # Continue without remote sync - user can still access local filesystem
 fi
 
-# Verify mount
-if mountpoint -q "$SSHFS_MOUNT_POINT"; then
-    echo "SSHFS mount verification successful"
+# Verify sync
+if [ -d "$SSHFS_MOUNT_POINT" ] && [ "$(ls -A $SSHFS_MOUNT_POINT 2>/dev/null)" ]; then
+    echo "Remote file sync verification successful"
     echo "Remote workspace content:"
     ls -la "$SSHFS_MOUNT_POINT" | head -10
 else
-    echo "Warning: SSHFS mount not available. Code-server will start with local workspace only."
+    echo "Warning: Remote file sync not available. Code-server will start with local workspace only."
 fi
 
 # Start code-server

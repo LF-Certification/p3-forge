@@ -1,18 +1,14 @@
 FROM codercom/code-server:4.22.0
 
-# Install necessary packages for SSHFS and SSH
+# Install necessary packages for SSH and rsync
 USER root
 RUN apt-get update && \
     apt-get install -y \
     openssh-client \
-    sshfs \
-    fuse3 \
+    rsync \
     jq \
     curl \
     && rm -rf /var/lib/apt/lists/*
-
-# Allow non-root users to use FUSE
-RUN echo "user_allow_other" >> /etc/fuse.conf
 
 
 # Create user directory and workspace for UID 1000
