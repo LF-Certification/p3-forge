@@ -48,19 +48,27 @@ test_ssh_connection() {
 }
 
 # Function to mount SSHFS
+# Function to mount SSHFS
 mount_sshfs() {
     echo "Mounting remote directory $WORKSPACE_DIR via SSHFS..."
 
-    # Ensure mount point exists and is empty
+    # Ensure mount point exists
     mkdir -p "$SSHFS_MOUNT_POINT"
 
-    # Check if already mounted
-    if mountpoint -q "$SSHFS_MOUNT_POINT"; then
+    # Check if SSHFS is specifically already mounted (not just any mount)
+    if mount | grep -q "sshfs.*on $SSHFS_MOUNT_POINT "; then
         echo "SSHFS already mounted at $SSHFS_MOUNT_POINT"
         return 0
     fi
 
-    # Mount with SSHFS
+    # Check what's currently mounted and inform user
+    if mountpoint -q "$SSHFS_MOUNT_POINT"; then
+        echo "Detected existing mount at $SSHFS_MOUNT_POINT:"
+        findmnt "$SSHFS_MOUNT_POINT" | head -2
+        echo "Mounting SSHFS over existing mount..."
+    fi
+
+    # Mount with SSHFS - this will mount over the existing emptyDir
     sshfs -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
           -o StrictHostKeyChecking=accept-new \
           -o UserKnownHostsFile=/dev/null \
@@ -69,8 +77,15 @@ mount_sshfs() {
           "$SSHFS_MOUNT_POINT"
 
     if [ $? -eq 0 ]; then
-        echo "Successfully mounted $TARGET_USER@$TARGET_HOST:$WORKSPACE_DIR to $SSHFS_MOUNT_POINT"
-        return 0
+        # Double-check that SSHFS is actually mounted
+        if mount | grep -q "sshfs.*on $SSHFS_MOUNT_POINT "; then
+            echo "Successfully mounted $TARGET_USER@$TARGET_HOST:$WORKSPACE_DIR to $SSHFS_MOUNT_POINT"
+            return 0
+        else
+            echo "Mount command succeeded but SSHFS mount not detected"
+            mount | grep "$SSHFS_MOUNT_POINT" || echo "No mount found"
+            return 1
+        fi
     else
         echo "Failed to mount SSHFS"
         return 1
@@ -148,4 +163,6 @@ exec code-server \
     --bind-addr 0.0.0.0:8080 \
     --auth none \
     --disable-telemetry \
+    --disable-update-check \
+    --disable-getting-started-override \
     "$SSHFS_MOUNT_POINT"
