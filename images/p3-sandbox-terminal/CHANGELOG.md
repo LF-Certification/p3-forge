@@ -1,5 +1,17 @@
 # Changelog
 
+## [p3-sandbox-terminal-v1.2.1] - 2025-08-12
+
+### 🐛 Bug Fixes
+
+- Handle the case where the ssh key is read only
+- Remove unnecessary ssh permission logic
+- Set the SHELL env var for the user
+
+### 🚜 Refactor
+
+- Adopt same security practices as IDE tool
+
 ## [p3-sandbox-terminal-v1.2.0] - 2025-08-08
 
 ### 🚀 Features
