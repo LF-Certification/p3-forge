@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-ide-v1.0.1] - 2025-08-12
+
+### 🐛 Bug Fixes
+
+- Fix dependency version conflict
+
 ## [p3-sandbox-ide-v1.0.0] - 2025-08-12
 
 ### 🚀 Features
