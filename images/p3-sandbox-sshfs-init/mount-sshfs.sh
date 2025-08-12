@@ -53,10 +53,17 @@ if [ "$key_perms" != "600" ] && [ "$key_perms" != "unknown" ]; then
     fi
 fi
 
-# Validate mount point exists
-if [ ! -d "$MOUNT_POINT" ]; then
-    echo "ERROR: Mount point $MOUNT_POINT does not exist"
+# Ensure parent directory exists and create mount point
+PARENT_DIR=$(dirname "$MOUNT_POINT")
+if [ ! -d "$PARENT_DIR" ]; then
+    echo "ERROR: Parent directory $PARENT_DIR does not exist"
     exit 1
+fi
+
+# Create mount point directory if it doesn't exist
+if [ ! -d "$MOUNT_POINT" ]; then
+    echo "Creating mount point directory: $MOUNT_POINT"
+    mkdir -p "$MOUNT_POINT"
 fi
 
 # Test SSH connectivity first
@@ -155,8 +162,9 @@ else
     exit 1
 fi
 
-# Create a marker file to indicate successful mount
-echo "sshfs-mounted" > "$MOUNT_POINT/.sshfs-status"
+# Create a marker file to indicate successful mount (in parent shared directory)
+echo "sshfs-mounted" > "$PARENT_DIR/.sshfs-status"
+echo "remote-path: $MOUNT_POINT" > "$PARENT_DIR/.sshfs-info"
 echo "SUCCESS: Remote filesystem mounted successfully at $MOUNT_POINT"
 
 # Check if running as sidecar (keeps mount alive) or init container (one-time mount)
@@ -184,7 +192,8 @@ if [ "$SIDECAR_MODE" = "true" ]; then
                      "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR" \
                      "$MOUNT_POINT" 2>/dev/null; then
                 echo "SSHFS remount successful"
-                echo "sshfs-mounted" > "$MOUNT_POINT/.sshfs-status"
+                echo "sshfs-mounted" > "$PARENT_DIR/.sshfs-status"
+                echo "remote-path: $MOUNT_POINT" > "$PARENT_DIR/.sshfs-info"
             else
                 echo "SSHFS remount failed, will retry..."
             fi
