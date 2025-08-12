@@ -4,7 +4,11 @@ A privileged init container that mounts remote filesystems via SSHFS for use by 
 
 ## Overview
 
-This init container is designed to run as a privileged container that performs SSHFS mounting before the main IDE container starts. The mounted filesystem is then accessible to the non-privileged main container via a shared volume.
+This container can operate in two modes:
+1. **Init Container Mode** (default): Runs as a privileged init container that performs SSHFS mounting before the main IDE container starts
+2. **Sidecar Mode**: Runs continuously alongside the main container, monitoring and maintaining the SSHFS mount
+
+The mounted filesystem is accessible to the non-privileged main container via a shared volume.
 
 ## Architecture
 
@@ -24,6 +28,7 @@ This init container is designed to run as a privileged container that performs S
 | `SSH_CONFIG_PATH` | No | `/home/coder/.ssh/config` | SSH config file path |
 | `MAX_RETRIES` | No | `10` | Maximum retry attempts for connections |
 | `RETRY_DELAY` | No | `5` | Delay between retry attempts (seconds) |
+| `SIDECAR_MODE` | No | `false` | Run as sidecar (true) or init container (false) |
 
 ## Volume Mounts
 
@@ -57,6 +62,7 @@ The init container expects the following volume mounts:
 
 ## How It Works
 
+### Init Container Mode (default)
 1. **Validation**: Validates required environment variables and SSH key existence
 2. **SSH Testing**: Tests SSH connectivity with retry logic
 3. **Remote Directory**: Verifies or creates remote workspace directory
@@ -64,9 +70,18 @@ The init container expects the following volume mounts:
 5. **Verification**: Verifies successful mount and creates status marker
 6. **Completion**: Ensures mount stability before init container exits
 
+### Sidecar Mode (`SIDECAR_MODE=true`)
+1. **Initial Mount**: Performs same mounting process as init container mode
+2. **Continuous Monitoring**: Monitors mount health every 30 seconds
+3. **Auto-Recovery**: Automatically remounts if connection is lost
+4. **Status Updates**: Maintains `.sshfs-status` file to indicate mount health
+
 ## Status Indicators
 
-The init container creates a `.sshfs-status` file in the mounted directory to indicate successful mounting. The main container can check for this file to determine if SSHFS mounting was successful.
+The container creates a `.sshfs-status` file in the mounted directory to indicate successful mounting. The main container can check for this file to determine if SSHFS mounting was successful.
+
+- **Init Container Mode**: Status file created once after successful mount
+- **Sidecar Mode**: Status file updated continuously to reflect mount health
 
 ## Integration with IDE Tool
 
@@ -132,13 +147,26 @@ Common issues and solutions:
 
 ## Example Usage
 
-The init container is typically used automatically by the P3 Sandbox Operator, but can be tested manually:
+The container is typically used automatically by the P3 Sandbox Operator, but can be tested manually:
 
+### Init Container Mode
 ```bash
 docker run --privileged \
   -e TARGET_HOST=example.com \
   -e TARGET_USER=developer \
   -e REMOTE_WORKDIR=/home/developer/workspace \
+  -v ssh-keys:/home/coder/.ssh:ro \
+  -v workspace:/workspace \
+  ghcr.io/lf-certification/p3-sandbox-sshfs-init:latest
+```
+
+### Sidecar Mode
+```bash
+docker run --privileged \
+  -e TARGET_HOST=example.com \
+  -e TARGET_USER=developer \
+  -e REMOTE_WORKDIR=/home/developer/workspace \
+  -e SIDECAR_MODE=true \
   -v ssh-keys:/home/coder/.ssh:ro \
   -v workspace:/workspace \
   ghcr.io/lf-certification/p3-sandbox-sshfs-init:latest

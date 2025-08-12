@@ -159,8 +159,45 @@ fi
 echo "sshfs-mounted" > "$MOUNT_POINT/.sshfs-status"
 echo "SUCCESS: Remote filesystem mounted successfully at $MOUNT_POINT"
 
-# Keep the container running briefly to ensure mount is stable
-echo "Waiting 5 seconds to ensure mount stability..."
-sleep 5
+# Check if running as sidecar (keeps mount alive) or init container (one-time mount)
+if [ "$SIDECAR_MODE" = "true" ]; then
+    echo "Running in sidecar mode - keeping SSHFS mount alive"
 
-echo "SSHFS init container completed successfully"
+    # Create a monitoring loop to ensure mount stays active
+    while true; do
+        # Check if mount is still active
+        if ! mount | grep -q "$MOUNT_POINT"; then
+            echo "SSHFS mount lost, attempting to remount..."
+
+            # Attempt to remount
+            if sshfs -o StrictHostKeyChecking=no \
+                     -o UserKnownHostsFile=/dev/null \
+                     -o IdentityFile="$SSH_KEY_PATH" \
+                     -o allow_other \
+                     -o default_permissions \
+                     -o uid=1000 \
+                     -o gid=1000 \
+                     -o umask=022 \
+                     -o reconnect \
+                     -o ServerAliveInterval=15 \
+                     -o ServerAliveCountMax=3 \
+                     "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR" \
+                     "$MOUNT_POINT" 2>/dev/null; then
+                echo "SSHFS remount successful"
+                echo "sshfs-mounted" > "$MOUNT_POINT/.sshfs-status"
+            else
+                echo "SSHFS remount failed, will retry..."
+            fi
+        fi
+
+        # Check every 30 seconds
+        sleep 30
+    done
+else
+    echo "Running in init container mode"
+    # Keep the container running briefly to ensure mount is stable
+    echo "Waiting 5 seconds to ensure mount stability..."
+    sleep 5
+
+    echo "SSHFS init container completed successfully"
+fi
