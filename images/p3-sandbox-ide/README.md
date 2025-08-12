@@ -17,7 +17,8 @@ A web-based IDE container built on code-server that automatically syncs with rem
 |----------|----------|---------|-------------|
 | `TARGET_HOST` | Yes | - | Hostname or IP of the target host to connect to |
 | `TARGET_USER` | Yes | - | Username for SSH connection to target host |
-| `WORKSPACE_DIR` | No | `/home/$TARGET_USER` | Remote directory to sync as workspace |
+| `REMOTE_WORKDIR` | Yes | - | Remote directory to sync as workspace |
+| `LOCAL_WORKDIR` | No | `$HOME/workspace` | Local directory path for workspace mount point |
 | `SYNC_INTERVAL` | No | `30` | Sync interval in seconds for background daemon |
 | `PASSWORD` | No | `password` | Password for code-server web interface |
 

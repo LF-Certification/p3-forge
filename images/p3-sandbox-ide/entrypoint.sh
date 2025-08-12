@@ -12,15 +12,19 @@ if [ -z "$TARGET_USER" ]; then
     exit 1
 fi
 
+if [ -z "$REMOTE_WORKDIR" ]; then
+    echo "Error: REMOTE_WORKDIR environment variable is not set."
+    exit 1
+fi
+
 # Set defaults for optional variables
-WORKSPACE_DIR=${WORKSPACE_DIR:-"/home/$TARGET_USER"}
-SSHFS_MOUNT_POINT="$HOME/workspace"
+LOCAL_WORKDIR=${LOCAL_WORKDIR:-"$HOME/workspace"}
 
 echo "Starting IDE container with the following configuration:"
 echo "  Target Host: $TARGET_HOST"
 echo "  Target User: $TARGET_USER"
-echo "  Remote Workspace: $WORKSPACE_DIR"
-echo "  Local Mount Point: $SSHFS_MOUNT_POINT"
+echo "  Remote Workspace: $REMOTE_WORKDIR"
+echo "  Local Workspace: $LOCAL_WORKDIR"
 
 echo "Debug information:"
 echo "  Current user: $(whoami)"
@@ -55,8 +59,8 @@ sync_remote_files() {
     echo "Syncing remote files to local workspace..."
     rsync -avz --delete \
         -e "ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
-        "$TARGET_USER@$TARGET_HOST:$WORKSPACE_DIR/" \
-        "$SSHFS_MOUNT_POINT/"
+        "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR/" \
+        "$LOCAL_WORKDIR/"
 
     if [ $? -eq 0 ]; then
         echo "Initial sync completed successfully"
@@ -100,7 +104,7 @@ EOF
     chmod +x /tmp/sync_daemon.sh
 
     # Start daemon in background
-    nohup /tmp/sync_daemon.sh "$WORKSPACE_DIR" "$SSHFS_MOUNT_POINT" "$TARGET_USER@$TARGET_HOST" > /tmp/sync.log 2>&1 &
+    nohup /tmp/sync_daemon.sh "$REMOTE_WORKDIR" "$LOCAL_WORKDIR" "$TARGET_USER@$TARGET_HOST" > /tmp/sync.log 2>&1 &
     SYNC_PID=$!
     echo $SYNC_PID > /tmp/sync_daemon.pid
     echo "Sync daemon started with PID $SYNC_PID"
@@ -109,10 +113,10 @@ EOF
 
 # Function to sync files using rsync instead of SSHFS
 mount_sshfs() {
-    echo "Syncing remote directory $WORKSPACE_DIR via rsync..."
+    echo "Syncing remote directory $REMOTE_WORKDIR via rsync..."
 
     # Ensure mount point exists
-    mkdir -p "$SSHFS_MOUNT_POINT"
+    mkdir -p "$LOCAL_WORKDIR"
 
     # Use rsync-based synchronization
     sync_remote_files
@@ -133,7 +137,7 @@ cleanup() {
             echo "Performing final sync..."
             rsync -avz --timeout=10 \
                 -e "ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
-                "$SSHFS_MOUNT_POINT/" "$TARGET_USER@$TARGET_HOST:$WORKSPACE_DIR/" 2>/dev/null
+                "$LOCAL_WORKDIR/" "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR/" 2>/dev/null
         fi
         rm -f /tmp/sync_daemon.pid
     fi
@@ -187,10 +191,10 @@ if [ $SYNC_COUNT -eq $SYNC_RETRIES ]; then
 fi
 
 # Verify sync
-if [ -d "$SSHFS_MOUNT_POINT" ] && [ "$(ls -A $SSHFS_MOUNT_POINT 2>/dev/null)" ]; then
+if [ -d "$LOCAL_WORKDIR" ] && [ "$(ls -A $LOCAL_WORKDIR 2>/dev/null)" ]; then
     echo "Remote file sync verification successful"
     echo "Remote workspace content:"
-    ls -la "$SSHFS_MOUNT_POINT" | head -10
+    ls -la "$LOCAL_WORKDIR" | head -10
 else
     echo "Warning: Remote file sync not available. Code-server will start with local workspace only."
 fi
@@ -203,4 +207,4 @@ exec code-server \
     --disable-telemetry \
     --disable-update-check \
     --disable-getting-started-override \
-    "$SSHFS_MOUNT_POINT"
+    "$LOCAL_WORKDIR"
