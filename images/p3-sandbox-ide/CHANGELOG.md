@@ -1,5 +1,27 @@
 # Changelog
 
+## [p3-sandbox-ide-v1.0.2] - 2025-08-12
+
+### 🐛 Bug Fixes
+
+- Use sudo when running chmod and chown
+- Handle the case where the ssh key is read only
+- Remove unnecessary ssh file permission changes
+- Remove --password arg
+- Disable password auth
+
+### 🚜 Refactor
+
+- Set user as "user"
+
+### ⚙️ Miscellaneous Tasks
+
+- Add debug information in entrypoint
+
+### ◀️ Revert
+
+- Revert sudo addition and handle error gracefully
+
 ## [p3-sandbox-ide-v1.0.1] - 2025-08-12
 
 ### 🐛 Bug Fixes
