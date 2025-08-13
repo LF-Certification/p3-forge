@@ -1,5 +1,24 @@
 # Changelog
 
+## [p3-sandbox-ide-v1.1.0] - 2025-08-13
+
+### 🚀 Features
+
+- Handle shared workspace more intelligently
+
+### 🐛 Bug Fixes
+
+- Mount over any existing local directory
+- Remove hardcoded user directories
+- Wait for shared local workdir to be available
+
+### 🚜 Refactor
+
+- Remove sshfs and use rsync
+- Clean up old variable names
+- Simplify by removing remote fs concerns
+- Remove unnecessary sshfs logic
+
 ## [p3-sandbox-ide-v1.0.2] - 2025-08-12
 
 ### 🐛 Bug Fixes
