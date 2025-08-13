@@ -1,32 +1,6 @@
 #!/bin/bash
 set -e
 
-# Set up cleanup handler early to catch any signals during initialization
-cleanup() {
-    echo "Received termination signal, unmounting SSHFS..."
-    retry_count=0
-    while [ $retry_count -lt 3 ]; do
-        if mount | grep -q "[[:space:]]${MOUNT_POINT:-/workspace}[[:space:]]"; then
-            if umount -f "${MOUNT_POINT:-/workspace}" 2>/tmp/umount_error; then
-                echo "SSHFS unmounted successfully"
-                break
-            else
-                retry_count=$((retry_count + 1))
-                echo "Failed to unmount SSHFS, retry $retry_count/3: $(cat /tmp/umount_error 2>/dev/null || echo 'unknown error')"
-                sleep 1
-            fi
-        else
-            echo "No SSHFS mount found at ${MOUNT_POINT:-/workspace}"
-            break
-        fi
-    done
-    if [ $retry_count -eq 3 ]; then
-        echo "Failed to unmount SSHFS after retries"
-    fi
-    echo "Exiting..."
-    exit 0
-}
-trap cleanup SIGTERM SIGINT
 
 echo "Starting SSHFS container..."
 
@@ -57,6 +31,33 @@ MAX_RETRIES=${MAX_RETRIES:-10}
 RETRY_DELAY=${RETRY_DELAY:-5}
 SSHFS_UID=${SSHFS_UID:-1000}
 SSHFS_GID=${SSHFS_GID:-1000}
+
+# Set up cleanup handler early to catch any signals during initialization
+cleanup() {
+    echo "Received termination signal, unmounting SSHFS..."
+    retry_count=0
+    while [ $retry_count -lt 3 ]; do
+        if mount | grep -q "[[:space:]]${MOUNT_POINT}[[:space:]]"; then
+            if umount -f "${MOUNT_POINT}" 2>/tmp/umount_error; then
+                echo "SSHFS unmounted successfully"
+                break
+            else
+                retry_count=$((retry_count + 1))
+                echo "Failed to unmount SSHFS, retry $retry_count/3: $(cat /tmp/umount_error 2>/dev/null || echo 'unknown error')"
+                sleep 1
+            fi
+        else
+            echo "No SSHFS mount found at ${MOUNT_POINT}"
+            break
+        fi
+    done
+    if [ $retry_count -eq 3 ]; then
+        echo "Failed to unmount SSHFS after retries"
+    fi
+    echo "Exiting..."
+    exit 0
+}
+trap cleanup SIGTERM SIGINT
 
 echo "Configuration:"
 echo "  Target: $TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR"
@@ -195,8 +196,21 @@ echo "SUCCESS: Remote filesystem mounted successfully at $MOUNT_POINT"
 while true; do
     # Check if mount is still active
     if ! mount | grep -q "$MOUNT_POINT"; then
-        echo "SSHFS mount lost, attempting to remount..."
+        echo "SSHFS mount lost, checking remote connectivity..."
 
+        # Test if remote is still reachable before attempting remount
+        if ! ssh -o ConnectTimeout=10 \
+               -o StrictHostKeyChecking=no \
+               -o UserKnownHostsFile=/dev/null \
+               -o BatchMode=yes \
+               -i "$SSH_KEY_PATH" \
+               "$TARGET_USER@$TARGET_HOST" \
+               "echo 'SSH connection check'" 2>/dev/null; then
+            echo "Remote host $TARGET_HOST is no longer reachable, exiting gracefully"
+            exit 0
+        fi
+
+        echo "Remote is reachable, attempting to remount..."
         # Attempt to remount
         if "${sshfs_cmd[@]}" \
            "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR" \
