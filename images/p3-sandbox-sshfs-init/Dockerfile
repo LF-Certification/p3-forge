@@ -20,9 +20,6 @@ RUN apk update && \
 COPY mount-sshfs.sh /usr/local/bin/mount-sshfs.sh
 RUN chmod +x /usr/local/bin/mount-sshfs.sh
 
-# Create directories
-RUN mkdir -p /workspace
-
 # Container runs as root to have mount privileges
 # The init container security context will handle this
 USER root

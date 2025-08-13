@@ -1,6 +1,33 @@
 #!/bin/bash
 set -e
 
+# Set up cleanup handler early to catch any signals during initialization
+cleanup() {
+    echo "Received termination signal, unmounting SSHFS..."
+    retry_count=0
+    while [ $retry_count -lt 3 ]; do
+        if mount | grep -q "[[:space:]]${MOUNT_POINT:-/workspace}[[:space:]]"; then
+            if umount -f "${MOUNT_POINT:-/workspace}" 2>/tmp/umount_error; then
+                echo "SSHFS unmounted successfully"
+                break
+            else
+                retry_count=$((retry_count + 1))
+                echo "Failed to unmount SSHFS, retry $retry_count/3: $(cat /tmp/umount_error 2>/dev/null || echo 'unknown error')"
+                sleep 1
+            fi
+        else
+            echo "No SSHFS mount found at ${MOUNT_POINT:-/workspace}"
+            break
+        fi
+    done
+    if [ $retry_count -eq 3 ]; then
+        echo "Failed to unmount SSHFS after retries"
+    fi
+    echo "Exiting..."
+    exit 0
+}
+trap cleanup SIGTERM SIGINT
+
 echo "Starting SSHFS container..."
 
 if [ -z "$TARGET_HOST" ]; then
@@ -18,8 +45,12 @@ if [ -z "$REMOTE_WORKDIR" ]; then
     exit 1
 fi
 
+if [ -z "$MOUNT_POINT" ]; then
+    echo "ERROR: MOUNT_POINT environment variable is required"
+    exit 1
+fi
+
 # Set defaults
-MOUNT_POINT=${MOUNT_POINT:-"/workspace"}
 SSH_KEY_PATH=${SSH_KEY_PATH:-"/home/coder/.ssh/id_rsa"}
 SSH_CONFIG_PATH=${SSH_CONFIG_PATH:-"/home/coder/.ssh/config"}
 MAX_RETRIES=${MAX_RETRIES:-10}
@@ -119,17 +150,17 @@ sshfs_cmd=(sshfs
     -o reconnect
     -o ServerAliveInterval=15
     -o ServerAliveCountMax=3
-    -o compression=yes
-    -o ssh_command="ssh -t $TARGET_USER@$TARGET_HOST sudo -n"
+    -o sshfs_debug
 )
 
 # Mount the remote filesystem using SSHFS
-echo "Mounting remote filesystem via SSHFS..."
+echo "Mounting remote filesystem using command:"
+echo "${sshfs_cmd[@]}"
 retry_count=0
 while [ $retry_count -lt $MAX_RETRIES ]; do
     if "${sshfs_cmd[@]}" \
        "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR" \
-       "$MOUNT_POINT" 2>/dev/null; then
+       "$MOUNT_POINT"; then
         echo "SSHFS mount successful"
         break
     else
@@ -159,34 +190,8 @@ fi
 
 echo "SUCCESS: Remote filesystem mounted successfully at $MOUNT_POINT"
 
-# Ensure we exit cleanly when the cluster kills the pod
-cleanup() {
-    echo "Received SIGTERM, unmounting SSHFS..."
-    retry_count=0
-    while [ $retry_count -lt 3 ]; do
-        if mount | grep -q "[[:space:]]$MOUNT_POINT[[:space:]]"; then
-            if umount -f "$MOUNT_POINT" 2>/tmp/umount_error; then
-                echo "SSHFS unmounted successfully"
-                break
-            else
-                retry_count=$((retry_count + 1))
-                echo "Failed to unmount SSHFS, retry $retry_count/3: $(cat /tmp/umount_error)"
-                sleep 2
-            fi
-        else
-            echo "No SSHFS mount found at $MOUNT_POINT"
-            break
-        fi
-    done
-    if [ $retry_count -eq 3 ]; then
-        echo "Failed to unmount SSHFS after retries"
-    fi
-    echo "Exiting..."
-    exit 0
-}
-trap cleanup SIGTERM SIGINT
-
 # Create a monitoring loop to ensure mount stays active
+# Use shorter sleep intervals to improve signal responsiveness
 while true; do
     # Check if mount is still active
     if ! mount | grep -q "$MOUNT_POINT"; then
@@ -202,6 +207,9 @@ while true; do
         fi
     fi
 
-    # Check every 30 seconds
-    sleep 30
+    # Use shorter sleep intervals (5 seconds) to improve signal responsiveness
+    # Sleep in 1-second intervals to allow quicker signal handling
+    for i in {1..5}; do
+        sleep 1
+    done
 done
