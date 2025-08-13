@@ -4,9 +4,7 @@ A privileged init container that mounts remote filesystems via SSHFS for use by 
 
 ## Overview
 
-This container can operate in two modes:
-1. **Init Container Mode** (default): Runs as a privileged init container that performs SSHFS mounting before the main IDE container starts
-2. **Sidecar Mode**: Runs continuously alongside the main container, monitoring and maintaining the SSHFS mount
+This container runs as a privileged init container that performs SSHFS mounting and then continuously monitors the mount to ensure it remains active. It automatically remounts if the connection is lost and handles graceful cleanup on termination signals.
 
 The mounted filesystem is accessible to the non-privileged main container via a shared volume.
 
@@ -23,12 +21,13 @@ The mounted filesystem is accessible to the non-privileged main container via a 
 | `TARGET_HOST` | Yes | - | Remote host to connect to |
 | `TARGET_USER` | Yes | - | Username for SSH connection |
 | `REMOTE_WORKDIR` | Yes | - | Remote directory to mount |
-| `MOUNT_POINT` | No | `/workspace` | Local mount point path |
+| `MOUNT_POINT` | Yes | - | Local mount point path |
 | `SSH_KEY_PATH` | No | `/home/coder/.ssh/id_rsa` | SSH private key path |
 | `SSH_CONFIG_PATH` | No | `/home/coder/.ssh/config` | SSH config file path |
 | `MAX_RETRIES` | No | `10` | Maximum retry attempts for connections |
 | `RETRY_DELAY` | No | `5` | Delay between retry attempts (seconds) |
-| `SIDECAR_MODE` | No | `false` | Run as sidecar (true) or init container (false) |
+| `SSHFS_UID` | No | `1000` | UID for SSHFS mount ownership |
+| `SSHFS_GID` | No | `1000` | GID for SSHFS mount ownership |
 
 ## Volume Mounts
 
@@ -46,51 +45,44 @@ The init container expects the following volume mounts:
 
 ### Filesystem Management
 - **Remote Directory Creation**: Creates remote workspace if it doesn't exist
-- **Mount Verification**: Verifies successful mount and filesystem access
-- **Proper Permissions**: Sets appropriate file permissions (UID 1000, GID 1000)
+- **Mount Verification**: Verifies successful mount and displays directory contents
 
 ### SSHFS Options
-- **Reconnection**: Automatic reconnection on network interruption
-- **Keep-Alive**: ServerAlive settings to maintain connections
-- **Permission Mapping**: Maps to UID/GID 1000 for main container access
+- **Keep-Alive**: ServerAlive settings to maintain connections (ServerAliveInterval=15, ServerAliveCountMax=3)
+- **Permission Mapping**: Maps to configurable UID/GID (default 1000:1000)
 - **Allow Other**: Enables access from main container
+- **Debug Mode**: Includes sshfs_debug option for troubleshooting
 
 ### Security
-- **Proper SSH Key Permissions**: Ensures SSH key has 600 permissions
+- **SSH Key Permissions**: Checks and warns about SSH key permissions (expects 600)
 - **Host Key Management**: Disables strict host key checking for automated use
-- **Known Hosts**: Uses temporary known_hosts to avoid conflicts
+- **Known Hosts**: Uses /dev/null for UserKnownHostsFile to avoid conflicts
 
 ## How It Works
 
-### Init Container Mode (default)
 1. **Validation**: Validates required environment variables and SSH key existence
-2. **SSH Testing**: Tests SSH connectivity with retry logic
+2. **SSH Testing**: Tests SSH connectivity with retry logic and proper error reporting
 3. **Remote Directory**: Verifies or creates remote workspace directory
-4. **SSHFS Mount**: Mounts remote filesystem with appropriate options
-5. **Verification**: Verifies successful mount and creates status marker
-6. **Completion**: Ensures mount stability before init container exits
-
-### Sidecar Mode (`SIDECAR_MODE=true`)
-1. **Initial Mount**: Performs same mounting process as init container mode
-2. **Continuous Monitoring**: Monitors mount health every 30 seconds
-3. **Auto-Recovery**: Automatically remounts if connection is lost
-4. **Status Updates**: Maintains `.sshfs-status` file to indicate mount health
+4. **SSHFS Mount**: Mounts remote filesystem with appropriate options including UID/GID mapping
+5. **Verification**: Verifies successful mount and displays mount details
+6. **Continuous Monitoring**: Runs infinite loop checking mount status every 5 seconds
+7. **Auto-Recovery**: Attempts remount if mount is lost (after checking SSH connectivity)
+8. **Signal Handling**: Graceful cleanup with forced unmount on SIGTERM/SIGINT
 
 ## Status Indicators
 
-The container creates a `.sshfs-status` file in the mounted directory to indicate successful mounting. The main container can check for this file to determine if SSHFS mounting was successful.
+The container provides comprehensive logging throughout the mounting process, including:
 
-- **Init Container Mode**: Status file created once after successful mount
-- **Sidecar Mode**: Status file updated continuously to reflect mount health
+- SSH connectivity test results
+- Remote directory verification/creation
+- SSHFS mount command details
+- Mount verification with file listing
+- Continuous monitoring status
+- Automatic remount attempts
 
-## Integration with IDE Tool
+## Integration
 
-This init container is automatically configured by the P3 Sandbox Operator when deploying IDE tools. The operator:
-
-1. Creates the privileged init container with proper security context
-2. Configures environment variables from tool definition
-3. Sets up volume mounts for workspace and SSH credentials
-4. Ensures main container runs non-privileged
+This init container is designed to be used with containerized IDE environments where remote filesystem access is needed via SSHFS.
 
 ## Error Handling
 
@@ -147,26 +139,14 @@ Common issues and solutions:
 
 ## Example Usage
 
-The container is typically used automatically by the P3 Sandbox Operator, but can be tested manually:
+The container can be run manually for testing:
 
-### Init Container Mode
 ```bash
 docker run --privileged \
   -e TARGET_HOST=example.com \
   -e TARGET_USER=developer \
   -e REMOTE_WORKDIR=/home/developer/workspace \
-  -v ssh-keys:/home/coder/.ssh:ro \
-  -v workspace:/workspace \
-  ghcr.io/lf-certification/p3-sandbox-sshfs-init:latest
-```
-
-### Sidecar Mode
-```bash
-docker run --privileged \
-  -e TARGET_HOST=example.com \
-  -e TARGET_USER=developer \
-  -e REMOTE_WORKDIR=/home/developer/workspace \
-  -e SIDECAR_MODE=true \
+  -e MOUNT_POINT=/workspace \
   -v ssh-keys:/home/coder/.ssh:ro \
   -v workspace:/workspace \
   ghcr.io/lf-certification/p3-sandbox-sshfs-init:latest
