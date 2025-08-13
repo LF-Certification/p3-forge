@@ -148,7 +148,6 @@ sshfs_cmd=(sshfs
     -o default_permissions
     -o uid=$SSHFS_UID
     -o gid=$SSHFS_GID
-    -o reconnect
     -o ServerAliveInterval=15
     -o ServerAliveCountMax=3
     -o sshfs_debug
