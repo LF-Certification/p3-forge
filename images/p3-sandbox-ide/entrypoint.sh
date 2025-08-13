@@ -19,10 +19,4 @@ echo "Workspace contents:"
 ls -la "$LOCAL_WORKDIR" | head -10
 
 echo "Starting code-server..."
-exec code-server \
-    --bind-addr 0.0.0.0:8080 \
-    --auth none \
-    --disable-telemetry \
-    --disable-update-check \
-    --disable-getting-started-override \
-    "$LOCAL_WORKDIR"
+exec code-server --config=/etc/code-server.yaml "$LOCAL_WORKDIR"
