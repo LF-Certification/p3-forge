@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-ide-v1.1.1] - 2025-08-13
+
+### 🚜 Refactor
+
+- Set config in settings.json and config.yaml
+
 ## [p3-sandbox-ide-v1.1.0] - 2025-08-13
 
 ### 🚀 Features
