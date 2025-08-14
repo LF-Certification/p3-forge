@@ -1,5 +1,15 @@
 # Changelog
 
+## [p3-sandbox-sshfs-init-v0.3.0] - 2025-08-14
+
+### 🚀 Features
+
+- Detect changes in targetHost to keep IDE up to date
+
+### 📚 Documentation
+
+- Update readme by removing outdated entries
+
 ## [p3-sandbox-sshfs-init-v0.2.0] - 2025-08-13
 
 ### 🚀 Features
