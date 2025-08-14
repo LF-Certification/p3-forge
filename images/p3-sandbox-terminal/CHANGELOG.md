@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-terminal-v1.3.0] - 2025-08-14
+
+### 🚀 Features
+
+- Add support for customizable font size
+
 ## [p3-sandbox-terminal-v1.2.1] - 2025-08-12
 
 ### 🐛 Bug Fixes
