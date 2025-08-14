@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-ide-v1.2.0] - 2025-08-14
+
+### 🚀 Features
+
+- Detect changes in targetHost to keep IDE up to date
+
 ## [p3-sandbox-ide-v1.1.1] - 2025-08-13
 
 ### 🚜 Refactor
