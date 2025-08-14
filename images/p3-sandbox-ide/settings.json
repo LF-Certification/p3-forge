@@ -1,3 +1,8 @@
 {
-  "workbench.startupEditor": "none"
+  "workbench.startupEditor": "none",
+  "files.watcherInclude": [
+    "**/*",
+    "../.ide-refresh-marker"
+  ],
+  "files.watcherExclude": {}
 }

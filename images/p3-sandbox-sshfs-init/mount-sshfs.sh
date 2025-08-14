@@ -32,31 +32,7 @@ RETRY_DELAY=${RETRY_DELAY:-5}
 SSHFS_UID=${SSHFS_UID:-1000}
 SSHFS_GID=${SSHFS_GID:-1000}
 
-# Set up cleanup handler early to catch any signals during initialization
-cleanup() {
-    echo "Received termination signal, unmounting SSHFS..."
-    retry_count=0
-    while [ $retry_count -lt 3 ]; do
-        if mount | grep -q "[[:space:]]${MOUNT_POINT}[[:space:]]"; then
-            if umount -f "${MOUNT_POINT}" 2>/tmp/umount_error; then
-                echo "SSHFS unmounted successfully"
-                break
-            else
-                retry_count=$((retry_count + 1))
-                echo "Failed to unmount SSHFS, retry $retry_count/3: $(cat /tmp/umount_error 2>/dev/null || echo 'unknown error')"
-                sleep 1
-            fi
-        else
-            echo "No SSHFS mount found at ${MOUNT_POINT}"
-            break
-        fi
-    done
-    if [ $retry_count -eq 3 ]; then
-        echo "Failed to unmount SSHFS after retries"
-    fi
-    echo "Exiting..."
-    exit 0
-}
+# Enhanced cleanup handler will be defined later
 trap cleanup SIGTERM SIGINT
 
 echo "Configuration:"
@@ -189,6 +165,77 @@ else
 fi
 
 echo "SUCCESS: Remote filesystem mounted successfully at $MOUNT_POINT"
+
+# Start background file watcher to trigger IDE refresh on remote changes
+start_file_watcher() {
+    local marker_file="$1/.ide-refresh-marker"
+    local watch_interval=${FILE_WATCH_INTERVAL:-2}
+
+    (
+        echo "Starting file watcher for $MOUNT_POINT (interval: ${watch_interval}s)"
+        local last_hash=""
+
+        while true; do
+            if mount | grep -q "$MOUNT_POINT"; then
+                # Generate hash of directory structure and file timestamps
+                local current_hash
+                if current_hash=$(find "$MOUNT_POINT" -type f -exec stat -c '%n %Y %s' {} \; 2>/dev/null | sort | sha256sum | cut -d' ' -f1 2>/dev/null); then
+                    if [ "$current_hash" != "$last_hash" ] && [ -n "$last_hash" ]; then
+                        echo "File changes detected, triggering IDE refresh"
+                        touch "$marker_file" 2>/dev/null || true
+                    fi
+                    last_hash="$current_hash"
+                fi
+            fi
+            sleep "$watch_interval"
+        done
+    ) &
+
+    # Store PID for cleanup
+    echo $! > /tmp/file_watcher.pid
+    echo "File watcher started with PID $(cat /tmp/file_watcher.pid)"
+}
+
+# Enhanced cleanup handler
+cleanup() {
+    echo "Received termination signal, cleaning up..."
+
+    # Kill file watcher if running
+    if [ -f /tmp/file_watcher.pid ]; then
+        local watcher_pid=$(cat /tmp/file_watcher.pid)
+        if kill -0 "$watcher_pid" 2>/dev/null; then
+            echo "Stopping file watcher (PID: $watcher_pid)"
+            kill "$watcher_pid" 2>/dev/null || true
+        fi
+        rm -f /tmp/file_watcher.pid
+    fi
+
+    # Unmount SSHFS
+    retry_count=0
+    while [ $retry_count -lt 3 ]; do
+        if mount | grep -q "[[:space:]]${MOUNT_POINT}[[:space:]]"; then
+            if umount -f "${MOUNT_POINT}" 2>/tmp/umount_error; then
+                echo "SSHFS unmounted successfully"
+                break
+            else
+                retry_count=$((retry_count + 1))
+                echo "Failed to unmount SSHFS, retry $retry_count/3: $(cat /tmp/umount_error 2>/dev/null || echo 'unknown error')"
+                sleep 1
+            fi
+        else
+            echo "No SSHFS mount found at ${MOUNT_POINT}"
+            break
+        fi
+    done
+    if [ $retry_count -eq 3 ]; then
+        echo "Failed to unmount SSHFS after retries"
+    fi
+    echo "Exiting..."
+    exit 0
+}
+
+# Start the file watcher
+start_file_watcher "$(dirname "$MOUNT_POINT")"
 
 # Create a monitoring loop to ensure mount stays active
 # Use shorter sleep intervals to improve signal responsiveness
