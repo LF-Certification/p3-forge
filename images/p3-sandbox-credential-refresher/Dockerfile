@@ -1,8 +1,9 @@
 FROM public.ecr.aws/aws-cli/aws-cli:2.17.47
 
-# Install kubectl
+# Install kubectl with multi-arch support
 RUN yum install -y curl && \
-    curl -LO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl" && \
+    ARCH=$(uname -m | sed 's/x86_64/amd64/g' | sed 's/aarch64/arm64/g') && \
+    curl -LO "https://dl.k8s.io/release/v1.31.0/bin/linux/${ARCH}/kubectl" && \
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/ && \
     kubectl version --client && \
