@@ -1,18 +1,17 @@
-# Basic Dockerfile - customize as needed
-FROM alpine:3.19
-# OCI labels for package linking and metadata
-LABEL org.opencontainers.image.source="https://github.com/lf-certification/sandbox-images"
-LABEL org.opencontainers.image.title="p3-sandbox-credential-refresher"
-LABEL org.opencontainers.image.description="Container image for p3/sandbox/credential/refresher"
+FROM public.ecr.aws/aws-cli/aws-cli:2.17.47
 
-RUN apk update && \
-    apk add --no-cache ca-certificates && \
-    rm -rf /var/cache/apk/*
+# Install kubectl
+RUN yum install -y curl && \
+    curl -LO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl" && \
+    chmod +x kubectl && \
+    mv kubectl /usr/local/bin/ && \
+    kubectl version --client && \
+    yum clean all && \
+    rm -rf /var/cache/yum
 
-RUN addgroup -g 1001 appuser && \
-    adduser -D -u 1001 -G appuser appuser
+# Verify installations
+RUN aws --version && \
+    kubectl version --client
 
-USER appuser
-WORKDIR /app
-
-CMD ["/bin/sh"]
+# Set entrypoint to shell for script execution
+ENTRYPOINT ["/bin/sh"]
