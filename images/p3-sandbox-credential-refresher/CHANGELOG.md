@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-credential-refresher-v0.2.1] - 2025-09-10
+
+### 🐛 Bug Fixes
+
+- Add multi-architecture support
+
 ## [p3-sandbox-credential-refresher-v0.2.0] - 2025-09-10
 
 ### 🚀 Features
