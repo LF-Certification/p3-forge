@@ -17,16 +17,14 @@ help: ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 .PHONY: setup
-setup: install-hooks ## Set up your development environment
+setup: pre-commit-install ## Set up your development environment
 	@echo "Setting up development environment..."
-	pre-commit install
-	pre-commit install --hook-type commit-msg
 	@echo "✅ Development environment ready!"
 
-.PHONY: install-hooks
-install-hooks:
-	pre-commit install
+.PHONY: pre-commit-install
+pre-commit-install:
 	pre-commit install --hook-type commit-msg
+	pre-commit install
 	@echo "✅ Pre-commit hooks installed"
 
 ##@ Development
@@ -64,11 +62,8 @@ release-dry-run-internal:
 	@devbox run --quiet -- ./scripts/create-release.sh --dry-run "$(IMAGE_PATH)"
 
 .PHONY: lint
-lint: ## Run all linting tools against the source code
-	pre-commit run --all-files --hook-stage pre-commit
-
-.PHONY: runall-pre-commit
-runall-pre-commit: lint # DEPRECATED: Use make lint instead
+lint: setup ## Run all linting tools against the source code
+	pre-commit run --all-files
 
 .PHONY: commit-graph
 commit-graph: ## Show git commit graph for an image path (usage: make commit-graph <path>)
