@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let tools;
     let defaultTool;
     let expirationDate;
+    let hasExpired = false;
 
     try {
         const parsedConfig = JSON.parse(configStr);
@@ -65,12 +66,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    function handleExpiration() {
+        if (!hasExpired) {
+            hasExpired = true;
+            // Redirect to the expired page
+            window.location.href = '/expired.html';
+        }
+    }
+
     function updateTimer() {
         const now = new Date();
         const timeLeft = expirationDate - now;
 
         if (timeLeft <= 0) {
             document.getElementById('timer-display').textContent = '00:00';
+            // Add a small delay to ensure the user sees 00:00 briefly
+            setTimeout(handleExpiration, 1000);
             return;
         }
 
