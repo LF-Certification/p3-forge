@@ -1,18 +1,13 @@
-# Basic Dockerfile - customize as needed
-FROM alpine:3.19
+FROM nginx:alpine
 # OCI labels for package linking and metadata
 LABEL org.opencontainers.image.source="https://github.com/lf-certification/sandbox-images"
 LABEL org.opencontainers.image.title="p3-sandbox-instructions-server"
 LABEL org.opencontainers.image.description="Container image for p3/sandbox/instructions/server"
 
-RUN apk update && \
-    apk add --no-cache ca-certificates && \
-    rm -rf /var/cache/apk/*
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-RUN addgroup -g 1001 appuser && \
-    adduser -D -u 1001 -G appuser appuser
+EXPOSE 80
 
-USER appuser
-WORKDIR /app
-
-CMD ["/bin/sh"]
+ENTRYPOINT ["/entrypoint.sh"]
