@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-compiler-v0.1.3] - 2025-09-22
+
+### 🐛 Bug Fixes
+
+- Avoid modifying any of the provided paths
+
 ## [p3-sandbox-instructions-compiler-v0.1.2] - 2025-09-22
 
 ### 🐛 Bug Fixes
