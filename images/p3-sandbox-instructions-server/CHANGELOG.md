@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-server-v0.1.2] - 2025-09-22
+
+### 🐛 Bug Fixes
+
+- Copy files to the html dir instead of deleting it
+
 ## [p3-sandbox-instructions-server-v0.1.1] - 2025-09-22
 
 ### ⚙️ Miscellaneous Tasks
