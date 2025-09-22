@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-compiler-v0.1.1] - 2025-09-22
+
+### ⚙️ Miscellaneous Tasks
+
+- Force rebuild instructions compiler
+
 ## [p3-sandbox-instructions-compiler-v0.1.0] - 2025-09-22
 
 ### 🚀 Features
