@@ -16,8 +16,10 @@ if [ ! -d "$HTML_DIR" ]; then
     exit 1
 fi
 
-mkdir -p /usr/share/nginx/html
+# Copy HTML files to nginx directory
+# Note: /usr/share/nginx/html should already exist with proper permissions
 cp -r "$HTML_DIR"/. /usr/share/nginx/html
 
 echo "Starting nginx with HTML directory: $HTML_DIR"
+echo "Nginx will listen on port 8080"
 exec nginx -g 'daemon off;'
