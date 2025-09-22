@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-compiler-v0.1.2] - 2025-09-22
+
+### 🐛 Bug Fixes
+
+- Use debian as base image instead of alpine
+
 ## [p3-sandbox-instructions-compiler-v0.1.1] - 2025-09-22
 
 ### ⚙️ Miscellaneous Tasks
