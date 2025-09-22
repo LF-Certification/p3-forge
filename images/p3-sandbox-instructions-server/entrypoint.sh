@@ -17,7 +17,7 @@ if [ ! -d "$HTML_DIR" ]; then
 fi
 
 mkdir -p /usr/share/nginx/html
-cp -r "$HTML_DIR/*" /usr/share/nginx/html
+cp -r "$HTML_DIR"/. /usr/share/nginx/html
 
 echo "Starting nginx with HTML directory: $HTML_DIR"
 exec nginx -g 'daemon off;'
