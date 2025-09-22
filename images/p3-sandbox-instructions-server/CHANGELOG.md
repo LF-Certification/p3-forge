@@ -1,5 +1,12 @@
 # Changelog
 
+## [p3-sandbox-instructions-server-v0.1.3] - 2025-09-22
+
+### 🐛 Bug Fixes
+
+- Use a more idiomatic way to copy files to avoid glob pattern issues
+- Use the unprivileged version of the nginx container image
+
 ## [p3-sandbox-instructions-server-v0.1.2] - 2025-09-22
 
 ### 🐛 Bug Fixes
