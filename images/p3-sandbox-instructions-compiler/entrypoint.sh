@@ -259,13 +259,19 @@ find "$SOURCE_PATH" -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" 
     echo "  Copied image: $rel_path"
 done
 
-# Build the site
+# Build the site to a subdirectory to avoid permission issues with mount point
 echo "Building static site with Hugo..."
-hugo --destination "$TARGET_PATH" --cleanDestinationDir
+HUGO_OUTPUT="/tmp/hugo-output-$$"
+mkdir -p "$HUGO_OUTPUT"
+hugo --destination "$HUGO_OUTPUT" --cleanDestinationDir
 
 # Check if build was successful
 if [ $? -eq 0 ]; then
-    echo "Successfully compiled static site to: $TARGET_PATH"
+    echo "Successfully compiled static site"
+
+    # Copy the built files to the target directory
+    echo "Copying built files to target directory..."
+    cp -r "$HUGO_OUTPUT"/* "$TARGET_PATH"/ 2>/dev/null || cp -r "$HUGO_OUTPUT"/. "$TARGET_PATH"/ 2>/dev/null || true
 
     # List generated files
     echo ""
@@ -276,8 +282,12 @@ if [ $? -eq 0 ]; then
     total_files=$(find "$TARGET_PATH" -type f | wc -l)
     echo ""
     echo "Total files generated: $total_files"
+
+    # Cleanup Hugo output directory
+    rm -rf "$HUGO_OUTPUT"
 else
     echo "Error: Hugo build failed"
+    rm -rf "$HUGO_OUTPUT"
     exit 1
 fi
 
