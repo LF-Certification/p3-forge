@@ -16,12 +16,8 @@ if [ ! -d "$HTML_DIR" ]; then
     exit 1
 fi
 
-# Symlink or copy the HTML files to nginx default location
-# Using symlink to avoid copying large directories
-if [ -d "/usr/share/nginx/html" ]; then
-    rm -rf /usr/share/nginx/html
-fi
-ln -s "$HTML_DIR" /usr/share/nginx/html
+mkdir -p /usr/share/nginx/html
+cp -r "$HTML_DIR/*" /usr/share/nginx/html
 
 echo "Starting nginx with HTML directory: $HTML_DIR"
 exec nginx -g 'daemon off;'
