@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-ui-v1.4.1] - 2025-09-26
+
+### 🐛 Bug Fixes
+
+- Hide the instructions sidebar if there are no instructions
+
 ## [p3-sandbox-ui-v1.4.0] - 2025-09-26
 
 ### 🚀 Features
