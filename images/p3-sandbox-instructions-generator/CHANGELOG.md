@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-generator-v1.0.1] - 2025-09-26
+
+### 🐛 Bug Fixes
+
+- Site_url must be acceptable to MkDocs
+
 ## [p3-sandbox-instructions-generator-v1.0.0] - 2025-09-26
 
 ### 🚀 Features
