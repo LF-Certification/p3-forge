@@ -16,14 +16,33 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Separate instructions tool from other tools
+    const instructionsTool = tools.find(tool => tool.kind === 'instructions');
+    const otherTools = tools.filter(tool => tool.kind !== 'instructions');
+
+    // Set up instructions sidebar
+    if (instructionsTool) {
+        const instructionsPane = document.querySelector('#instructions-pane');
+        if (instructionsPane) {
+            instructionsPane.innerHTML = `
+                <iframe src="${instructionsTool.url}"
+                        title="${instructionsTool.name}"
+                        class="w-100 border-0 h-100"
+                        loading="lazy"
+                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms">
+                </iframe>
+            `;
+        }
+    }
+
+    // Set up other tools in tabs
     const navPills = document.querySelector('.nav.nav-pills');
     const tabContent = document.querySelector('.tab-content');
-    const iframe = document.querySelector('#tool iframe');
 
     navPills.innerHTML = '';
     tabContent.innerHTML = '';
 
-    tools.forEach((tool, index) => {
+    otherTools.forEach((tool, index) => {
         const isDefault = tool.name === defaultTool;
 
         const navItem = document.createElement('li');

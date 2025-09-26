@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-ui-v1.3.0] - 2025-091-16
+
+### 🚀 Features
+
+- Add an expiry page
+
 ## [p3-sandbox-ui-v1.2.1] - 2025-08-07
 
 ### 🚜 Refactor
