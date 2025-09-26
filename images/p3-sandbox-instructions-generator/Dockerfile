@@ -26,6 +26,9 @@ RUN pip install --no-cache-dir \
 RUN groupadd -g 1001 appuser && \
     useradd -u 1001 -g appuser -m appuser
 
+# Copy MkDocs config and overrides
+COPY --chown=appuser:appuser mkdocs /mkdocs
+
 # Copy entrypoint script
 COPY --chown=appuser:appuser entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

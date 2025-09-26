@@ -1,0 +1,17 @@
+site_name: "LF Education"
+site_url: https://linuxfoundation.org
+
+theme:
+  name: material
+  custom_dir: overrides/
+
+extra_css:
+  - stylesheets/extra.css
+
+# Remove navigation completely
+nav: []
+
+markdown_extensions:
+  - admonition
+
+plugins: []

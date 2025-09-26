@@ -44,129 +44,21 @@ echo "  Target path: $TARGET_PATH"
 TEMP_SITE="/tmp/mkdocs-site-$$"
 mkdir -p "$TEMP_SITE"
 
-# Copy source files as-is (assuming proper MkDocs structure with docs/ directory)
-echo "Copying source files..."
-cp -r "$SOURCE_PATH"/* "$TEMP_SITE/" 2>/dev/null || cp -r "$SOURCE_PATH"/. "$TEMP_SITE/" 2>/dev/null || true
-
-cd "$TEMP_SITE"
-
-# Create MkDocs configuration only if it doesn't exist
-if [ ! -f "mkdocs.yml" ]; then
-    echo "No mkdocs.yml found. Creating minimal configuration for single-page rendering..."
-
-    # Create mkdocs.yml with minimal theme
-    cat > mkdocs.yml <<EOF
-site_name: ${MKDOCS_SITE_NAME:-Documentation}
-site_url: ${MKDOCS_SITE_URL:-https://example.com/}
-theme:
-  name: ${MKDOCS_THEME:-material}
-  custom_dir: overrides
-  palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
-  font:
-    text: Roboto
-    code: Roboto Mono
-  features:
-    - content.code.copy
-
-plugins:
-  - minify:
-      minify_html: true
-      minify_js: true
-      minify_css: true
-      htmlmin_opts:
-        remove_comments: true
-
-markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
-  - pymdownx.tabbed:
-      alternate_style: true
-  - pymdownx.details
-  - pymdownx.mark
-  - pymdownx.tilde
-  - pymdownx.smartsymbols
-  - admonition
-  - tables
-  - attr_list
-  - md_in_html
-  - toc:
-      permalink: true
-
-extra:
-  generator: false
-
-extra_css:
-  - css/custom.css
-EOF
-
-    # Create custom CSS to hide navigation elements for single-page display
-    mkdir -p overrides/css
-    cat > overrides/css/custom.css <<'EOF'
-/* Hide navigation sidebar */
-.md-sidebar {
-    display: none !important;
-}
-
-/* Hide header/navbar */
-.md-header {
-    display: none !important;
-}
-
-/* Hide navigation tabs */
-.md-tabs {
-    display: none !important;
-}
-
-/* Adjust main content to use full width */
-.md-content {
-    max-width: 100% !important;
-}
-
-.md-content__inner {
-    margin: 0 !important;
-    padding: 2rem !important;
-}
-
-/* Hide footer navigation */
-.md-footer__inner:not(.md-grid) {
-    display: none !important;
-}
-
-/* Adjust main layout without sidebar */
-.md-main__inner {
-    display: block !important;
-    max-width: 100% !important;
-}
-
-.md-content__inner:before {
-    display: none !important;
-}
-EOF
-
-    # Add repository information if provided
-    if [ -n "$MKDOCS_REPO_URL" ]; then
-        echo "repo_url: $MKDOCS_REPO_URL" >> mkdocs.yml
-    fi
-    if [ -n "$MKDOCS_REPO_NAME" ]; then
-        echo "repo_name: $MKDOCS_REPO_NAME" >> mkdocs.yml
-    fi
-else
-    echo "Using existing mkdocs.yml configuration..."
-fi
-
-# Verify docs directory exists
-if [ ! -d "docs" ]; then
-    echo "Error: No 'docs' directory found. MkDocs requires documentation in a 'docs' directory."
+# Expect instructions.md file
+echo "Looking for instructions.md..."
+if [ ! -f "$SOURCE_PATH/instructions.md" ]; then
+    echo "Error: instructions.md not found in source path: $SOURCE_PATH"
     exit 1
 fi
+
+# Copy the pre-configured MkDocs structure
+echo "Setting up MkDocs structure..."
+cp -r /mkdocs/* "$TEMP_SITE/"
+
+# Copy instructions.md to docs/index.md
+cp "$SOURCE_PATH/instructions.md" "$TEMP_SITE/docs/index.md"
+
+cd "$TEMP_SITE"
 
 # Build the site
 echo "Building static site with MkDocs..."
@@ -174,7 +66,7 @@ MKDOCS_OUTPUT="/tmp/mkdocs-output-$$"
 mkdir -p "$MKDOCS_OUTPUT"
 
 # Build the site with MkDocs
-mkdocs build --site-dir "$MKDOCS_OUTPUT" --clean
+mkdocs build --config-file mkdocs.yaml --site-dir "$MKDOCS_OUTPUT" --clean
 
 # Check if build was successful
 if [ $? -eq 0 ]; then
