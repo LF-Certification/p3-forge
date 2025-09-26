@@ -12,7 +12,7 @@ usage() {
     echo "Environment Variables (optional):"
     echo "  MKDOCS_THEME      MkDocs theme to use (default: material)"
     echo "  MKDOCS_SITE_NAME  Site name (default: Documentation)"
-    echo "  MKDOCS_SITE_URL   Site URL (default: /)"
+    echo "  MKDOCS_SITE_URL   Site URL (default: https://example.com/)"
     echo "  MKDOCS_REPO_URL   Repository URL (optional)"
     echo "  MKDOCS_REPO_NAME  Repository name (optional)"
     exit 1
@@ -57,7 +57,7 @@ if [ ! -f "mkdocs.yml" ]; then
     # Create mkdocs.yml with minimal theme
     cat > mkdocs.yml <<EOF
 site_name: ${MKDOCS_SITE_NAME:-Documentation}
-site_url: ${MKDOCS_SITE_URL:-/}
+site_url: ${MKDOCS_SITE_URL:-https://example.com/}
 theme:
   name: ${MKDOCS_THEME:-material}
   custom_dir: overrides
