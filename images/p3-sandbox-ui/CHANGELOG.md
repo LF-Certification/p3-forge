@@ -1,10 +1,15 @@
 # Changelog
 
-## [p3-sandbox-ui-v1.3.0] - 2025-091-16
+## [p3-sandbox-ui-v1.4.0] - 2025-09-26
 
 ### 🚀 Features
 
 - Add an expiry page
+- Add support for instructions as a sidebar
+
+### ⚙️ Miscellaneous Tasks
+
+- Be a good lint boy
 
 ## [p3-sandbox-ui-v1.2.1] - 2025-08-07
 
