@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-generator-v1.0.2] - 2025-09-26
+
+### 🚜 Refactor
+
+- Expect single instructions.md file as input
+
 ## [p3-sandbox-instructions-generator-v1.0.1] - 2025-09-26
 
 ### 🐛 Bug Fixes
