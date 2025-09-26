@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-server-v1.0.0] - 2025-09-26
+
+### 🚀 Features
+
+- [**breaking**] Provoke v1 release of instructions server
+
 ## [p3-sandbox-instructions-server-v0.1.3] - 2025-09-22
 
 ### 🐛 Bug Fixes
