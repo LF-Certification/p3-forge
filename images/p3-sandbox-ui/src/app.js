@@ -20,7 +20,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const instructionsTool = tools.find(tool => tool.kind === 'instructions');
     const otherTools = tools.filter(tool => tool.kind !== 'instructions');
 
-    // Set up instructions sidebar
+    // Set up instructions sidebar - hide if no instructions tool
+    const instructionsSidebar = document.querySelector('#instructions-sidebar');
+    const toolPane = document.querySelector('#tool-pane');
+
     if (instructionsTool) {
         const instructionsPane = document.querySelector('#instructions-pane');
         if (instructionsPane) {
@@ -32,6 +35,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         sandbox="allow-same-origin allow-scripts allow-popups allow-forms">
                 </iframe>
             `;
+        }
+    } else {
+        // Hide sidebar and expand tool pane to full width
+        if (instructionsSidebar) {
+            instructionsSidebar.style.display = 'none';
+        }
+        if (toolPane) {
+            toolPane.classList.remove('col-md-9');
+            toolPane.classList.add('col-12');
         }
     }
 
