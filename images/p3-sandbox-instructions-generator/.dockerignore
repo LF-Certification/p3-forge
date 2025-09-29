@@ -1,4 +1,0 @@
-mkdocs/docs/index.md
-.venv/
-*.pyc
-__pycache__/
