@@ -1,5 +1,22 @@
 # Changelog
 
+## [p3-sandbox-instructions-generator-v1.1.0] - 2025-09-29
+
+### 🚀 Features
+
+- Add optional Material for MkDocs features
+- Ensure Material for MkDoc config works
+
+### 🐛 Bug Fixes
+
+- Ensure Material for MkDocs config works
+
+### ⚙️ Miscellaneous Tasks
+
+- Rebuild devbox.lock using devbox 0.14.2
+- Remove unnecessary test in devbox json
+- Provoke image build
+
 ## [p3-sandbox-instructions-generator-v1.0.2] - 2025-09-26
 
 ### 🚜 Refactor
