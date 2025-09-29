@@ -14,13 +14,15 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install MkDocs and common plugins
-RUN pip install --no-cache-dir \
-    mkdocs==1.6.1 \
-    mkdocs-material==9.5.39 \
-    mkdocs-minify-plugin==0.8.0 \
-    pygments==2.18.0 \
-    pymdown-extensions==10.11.2
+# Install Poetry
+RUN pip install --no-cache-dir poetry==1.8.3
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock ./
+
+# Install dependencies from pyproject.toml
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --no-root
 
 # Create non-root user
 RUN groupadd -g 1001 appuser && \

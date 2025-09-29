@@ -2,7 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.14.2/.schema/devbox.schema.json",
   "packages": [
     "git-cliff@latest",
-    "pre-commit@latest"
+    "pre-commit@latest",
+    "python@3.12",
+    "poetry@1.8.3"
   ],
   "shell": {
     "init_hook": [],
