@@ -4,9 +4,6 @@ site_url: https://linuxfoundation.org
 theme:
   name: material
   custom_dir: overrides/
-  features:
-    - content.code.copy
-    - content.code.annotate
 
 extra_css:
   - stylesheets/extra.css
@@ -16,14 +13,5 @@ nav: []
 
 markdown_extensions:
   - admonition
-  - pymdownx.superfences:
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-  - pymdownx.tabbed:
-      alternate_style: true
-  - tables
-  - attr_list
-  - md_in_html
 
 plugins: []
