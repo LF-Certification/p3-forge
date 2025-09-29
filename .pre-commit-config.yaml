@@ -12,5 +12,6 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: images/p3-sandbox-instructions-generator/mkdocs/mkdocs.yaml
       - id: check-added-large-files
       - id: check-merge-conflict

@@ -3,7 +3,9 @@ site_url: https://linuxfoundation.org
 
 theme:
   name: material
-  custom_dir: overrides/
+  features:
+    - content.code.copy
+    - content.code.annotate
 
 extra_css:
   - stylesheets/extra.css
@@ -13,5 +15,31 @@ nav: []
 
 markdown_extensions:
   - admonition
-
-plugins: []
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - abbr
+  - attr_list
+  # Font Awesome icons
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  # Code blocks
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  # Tabbed content
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  # Lists
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true

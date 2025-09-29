@@ -1,30 +1,35 @@
 /* Hide left navigation */
 .md-sidebar--primary {
-    display: none !important;
+  display: none !important;
 }
 
 /* Hide right table of contents */
 .md-sidebar--secondary {
-    display: none !important;
+  display: none !important;
 }
 
 /* Expand main content to full width */
 .md-main__inner {
-    margin: 0 !important;
+  margin: 0 !important;
 }
 
 .md-content {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 .md-content__inner {
-    margin: 0 auto !important;
-    max-width: none !important;
-    padding: 1rem !important;
+  margin: 0 auto !important;
+  max-width: none !important;
+  padding: 1rem !important;
 }
 
 /* Optional: Remove any top margin from content */
 .md-typeset {
-    margin-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.md-header,
+.md-footer {
+  display: none !important;
 }

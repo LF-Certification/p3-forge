@@ -1,0 +1,15 @@
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dependencies]
+python = "~3.12"
+### Add project dependencies below this line ! ###
+mkdocs = "1.6.1"
+mkdocs-material = "9.6.20"
+mkdocs-minify-plugin = "0.8.0"
+pygments = "2.18.0"
+pymdown-extensions = "10.11.2"
