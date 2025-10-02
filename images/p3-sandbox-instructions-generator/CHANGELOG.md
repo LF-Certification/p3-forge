@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-generator-v1.2.0] - 2025-10-02
+
+### 🚀 Features
+
+- Add support for task.en.md with priority over instructions.md
+
 ## [p3-sandbox-instructions-generator-v1.1.0] - 2025-09-29
 
 ### 🚀 Features
