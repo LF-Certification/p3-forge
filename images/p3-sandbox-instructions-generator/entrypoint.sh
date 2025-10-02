@@ -44,10 +44,16 @@ echo "  Target path: $TARGET_PATH"
 TEMP_SITE="/tmp/mkdocs-site-$$"
 mkdir -p "$TEMP_SITE"
 
-# Expect instructions.md file
-echo "Looking for instructions.md..."
-if [ ! -f "$SOURCE_PATH/instructions.md" ]; then
-    echo "Error: instructions.md not found in source path: $SOURCE_PATH"
+# Look for task.en.md first, then fall back to instructions.md
+echo "Looking for task.en.md or instructions.md..."
+if [ -f "$SOURCE_PATH/task.en.md" ]; then
+    echo "Found task.en.md, using it as the source"
+    SOURCE_FILE="$SOURCE_PATH/task.en.md"
+elif [ -f "$SOURCE_PATH/instructions.md" ]; then
+    echo "Found instructions.md, using it as the source"
+    SOURCE_FILE="$SOURCE_PATH/instructions.md"
+else
+    echo "Error: Neither task.en.md nor instructions.md found in source path: $SOURCE_PATH"
     exit 1
 fi
 
@@ -55,8 +61,8 @@ fi
 echo "Setting up MkDocs structure..."
 cp -r /mkdocs/* "$TEMP_SITE/"
 
-# Copy instructions.md to docs/index.md
-cp "$SOURCE_PATH/instructions.md" "$TEMP_SITE/docs/index.md"
+# Copy the source file to docs/index.md
+cp "$SOURCE_FILE" "$TEMP_SITE/docs/index.md"
 
 cd "$TEMP_SITE"
 
