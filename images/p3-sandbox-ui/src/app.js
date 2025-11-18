@@ -49,8 +49,77 @@ document.addEventListener('DOMContentLoaded', function() {
             instructionsSidebar.style.display = 'none';
         }
         if (toolPane) {
-            toolPane.classList.remove('col-md-9');
-            toolPane.classList.add('col-12');
+            toolPane.style.flex = '1 1 100%';
+            toolPane.style.width = '100%';
+        }
+    }
+
+    // Initialize Split.js for resizable panes (only if instructions exist and desktop)
+    let splitInstance = null;
+    let isCollapsed = false;
+
+    if (instructionsTool && window.innerWidth >= 768) {
+        splitInstance = Split(["#instructions-sidebar", "#tool-pane"], {
+            sizes: [25, 75],
+            minSize: [0, 400],
+            gutterSize: 10,
+            cursor: 'col-resize',
+            snapOffset: 0
+        });
+
+        // Create expand tab for collapsed state
+        const expandTab = document.createElement('div');
+        expandTab.className = 'instructions-expand-tab';
+        // Wrap letters in individual divs, append a matching chevron icon
+        const instructionsHtml = 'Instructions'.split('').map(char =>
+            char === ' ' ? '<span style="height: 8px"></span>' : `<div>${char}</div>`
+        ).join('');
+        expandTab.innerHTML = `
+            <div class="instructions-expand-label">${instructionsHtml}</div>
+            <div class="instructions-expand-arrow">
+                <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="flipped">
+                    <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                </svg>
+            </div>
+        `;
+        expandTab.setAttribute('role', 'button');
+        expandTab.setAttribute('aria-label', 'Expand instructions');
+        document.body.appendChild(expandTab);
+
+        // Create toggle button on gutter
+        const gutter = document.querySelector('.gutter');
+        if (gutter) {
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'gutter-toggle';
+            toggleBtn.setAttribute('aria-label', 'Toggle instructions panel');
+            toggleBtn.innerHTML = `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+            </svg>`;
+            const toggleIcon = toggleBtn.querySelector('svg');
+            gutter.appendChild(toggleBtn);
+
+            // Toggle function
+            function toggleInstructions() {
+                if (isCollapsed) {
+                    // Expand
+                    splitInstance.setSizes([25, 75]);
+                    isCollapsed = false;
+                    expandTab.classList.remove('visible');
+                    toggleIcon.classList.remove('flipped');
+                    toggleBtn.setAttribute('aria-label', 'Collapse instructions panel');
+                } else {
+                    // Collapse
+                    splitInstance.setSizes([0, 100]);
+                    isCollapsed = true;
+                    expandTab.classList.add('visible');
+                    toggleIcon.classList.add('flipped');
+                    toggleBtn.setAttribute('aria-label', 'Expand instructions panel');
+                }
+            }
+
+            // Attach event listeners
+            toggleBtn.addEventListener('click', toggleInstructions);
+            expandTab.addEventListener('click', toggleInstructions);
         }
     }
 

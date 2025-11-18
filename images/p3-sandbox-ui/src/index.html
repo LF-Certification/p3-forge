@@ -16,6 +16,7 @@
       crossorigin="anonymous"
     />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="split-custom.css" />
   </head>
   <body>
     <header class="navbar navbar-expand-lg bg-body-tertiary sticky-top">
@@ -42,11 +43,11 @@
     </header>
 
     <main class="container-fluid p-0">
-      <div class="row g-0">
+      <div class="split-container">
         <!-- instructions sidebar -->
         <div
           id="instructions-sidebar"
-          class="col-md-3 position-sticky border-end"
+          class="split split-horizontal border-end"
           style="top: 56px; height: calc(100vh - 56px)"
         >
           <div id="instructions-pane" class="h-100 overflow-hidden">
@@ -57,7 +58,7 @@
         <!-- tool pane -->
         <div
           id="tool-pane"
-          class="col-md-9 position-sticky"
+          class="split split-horizontal"
           style="top: 56px; height: calc(100vh - 56px)"
         >
           <div class="tab-content h-100">
@@ -67,14 +68,15 @@
       </div>
     </main>
 
-    <script>
-      const configStr = "UI_CONFIG_PLACEHOLDER";
-    </script>
-    <script src="app.js"></script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
+    <script src="https://cdn.jsdelivr.net/npm/split.js@1.6.5/dist/split.min.js"></script>
+    <script>
+      const configStr = "UI_CONFIG_PLACEHOLDER";
+    </script>
+    <script src="app.js"></script>
   </body>
 </html>
