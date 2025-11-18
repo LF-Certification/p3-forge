@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let defaultTool;
     let expirationDate;
     let hasExpired = false;
+    let showTimer = true;
 
     try {
         const parsedConfig = JSON.parse(configStr);
@@ -11,9 +12,15 @@ document.addEventListener('DOMContentLoaded', function() {
         tools = parsedConfig.tools;
         defaultTool = config.defaultTool;
         expirationDate = new Date(config.expiresAt);
+        showTimer = config.showTimer !== false;
     } catch (error) {
         console.error('Error parsing configuration:', error);
         return;
+    }
+
+    const countdownTimer = document.getElementById('countdown-timer');
+    if (countdownTimer) {
+        countdownTimer.style.display = showTimer ? '' : 'none';
     }
 
     // Separate instructions tool from other tools
@@ -123,6 +130,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('timer-display').textContent = formattedTime;
     }
 
-    updateTimer();
-    setInterval(updateTimer, 1000);
+    if (showTimer) {
+        updateTimer();
+        setInterval(updateTimer, 1000);
+    }
 });
