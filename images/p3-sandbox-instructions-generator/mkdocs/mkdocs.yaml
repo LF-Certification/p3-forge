@@ -10,6 +10,12 @@ theme:
 extra_css:
   - stylesheets/extra.css
 
+extra_javascript:
+  - javascripts/external-links.js
+
+# Disable search for embedded use
+plugins: []
+
 # Remove navigation completely
 nav: []
 

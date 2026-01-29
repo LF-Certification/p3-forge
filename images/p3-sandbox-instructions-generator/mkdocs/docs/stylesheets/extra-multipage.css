@@ -1,0 +1,58 @@
+/* Multipage mode: Let MkDocs handle responsive navigation */
+
+/* Show left navigation sidebar - MkDocs will make it a hamburger on narrow screens */
+.md-sidebar--primary {
+  display: block !important;
+}
+
+/* Hide right table of contents */
+.md-sidebar--secondary {
+  display: none !important;
+}
+
+/* Hide search and footer */
+.md-search,
+.md-footer {
+  display: none !important;
+}
+
+/* Style the header */
+.md-header {
+  background-color: #0094FF !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+/* Style the drawer header to match */
+.md-nav--primary .md-nav__title {
+  background-color: #0094FF !important;
+}
+
+.md-nav--primary .md-nav__title[for="__drawer"] {
+  background-color: #0094FF !important;
+}
+
+/* Hide the logo/icon in drawer if desired, or style it */
+.md-nav__button.md-logo {
+  display: none !important;
+}
+
+/* Adjust main content layout */
+.md-main__inner {
+  margin: 0 !important;
+}
+
+.md-content {
+  margin-right: 0 !important;
+}
+
+.md-content__inner {
+  margin: 0 auto !important;
+  max-width: none !important;
+  padding: 1rem !important;
+}
+
+/* Remove top margin from content */
+.md-typeset {
+  margin-top: 0 !important;
+}
