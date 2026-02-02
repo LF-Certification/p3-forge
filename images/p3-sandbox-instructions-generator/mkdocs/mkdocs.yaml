@@ -6,6 +6,7 @@ theme:
   features:
     - content.code.copy
     - content.code.annotate
+    - navigation.footer
 
 extra_css:
   - stylesheets/extra.css
