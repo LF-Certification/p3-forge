@@ -44,25 +44,38 @@ echo "  Target path: $TARGET_PATH"
 TEMP_SITE="/tmp/mkdocs-site-$$"
 mkdir -p "$TEMP_SITE"
 
-# Look for task.en.md first, then fall back to instructions.md
-echo "Looking for task.en.md or instructions.md..."
-if [ -f "$SOURCE_PATH/task.en.md" ]; then
-    echo "Found task.en.md, using it as the source"
-    SOURCE_FILE="$SOURCE_PATH/task.en.md"
-elif [ -f "$SOURCE_PATH/instructions.md" ]; then
-    echo "Found instructions.md, using it as the source"
-    SOURCE_FILE="$SOURCE_PATH/instructions.md"
-else
-    echo "Error: Neither task.en.md nor instructions.md found in source path: $SOURCE_PATH"
-    exit 1
-fi
-
 # Copy the pre-configured MkDocs structure
 echo "Setting up MkDocs structure..."
 cp -r /mkdocs/* "$TEMP_SITE/"
 
-# Copy the source file to docs/index.md
-cp "$SOURCE_FILE" "$TEMP_SITE/docs/index.md"
+# Detect mode: directory (index.md present) or single-file
+if [ -f "$SOURCE_PATH/index.md" ]; then
+    echo "Directory mode: found index.md"
+    # Copy entire source directory to docs/
+    rm -f "$TEMP_SITE/docs/index.md"
+    cp -r "$SOURCE_PATH"/. "$TEMP_SITE/docs/"
+
+    # Count markdown files to determine if nav is needed
+    MD_COUNT=$(find "$SOURCE_PATH" -name '*.md' -type f | wc -l | tr -d ' ')
+    if [ "$MD_COUNT" -gt 1 ]; then
+        # Multiple pages: enable auto-navigation and multipage CSS
+        sed -i '/^nav: \[\]/d' "$TEMP_SITE/mkdocs.yaml"
+        sed -i 's|stylesheets/extra.css|stylesheets/extra-multipage.css|' "$TEMP_SITE/mkdocs.yaml"
+        echo "Configured for multipage navigation ($MD_COUNT pages)"
+    else
+        # Single page with assets: keep nav hidden, use single-page CSS
+        echo "Configured for single page with assets"
+    fi
+elif [ -f "$SOURCE_PATH/task.en.md" ]; then
+    echo "Single-file mode: found task.en.md"
+    cp "$SOURCE_PATH/task.en.md" "$TEMP_SITE/docs/index.md"
+elif [ -f "$SOURCE_PATH/instructions.md" ]; then
+    echo "Single-file mode: found instructions.md"
+    cp "$SOURCE_PATH/instructions.md" "$TEMP_SITE/docs/index.md"
+else
+    echo "Error: No index.md, task.en.md, or instructions.md found in source path: $SOURCE_PATH"
+    exit 1
+fi
 
 cd "$TEMP_SITE"
 

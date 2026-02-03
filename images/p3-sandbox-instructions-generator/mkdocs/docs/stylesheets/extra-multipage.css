@@ -1,0 +1,82 @@
+/* Multipage mode: Let MkDocs handle responsive navigation */
+
+/* Show left navigation sidebar - MkDocs will make it a hamburger on narrow screens */
+.md-sidebar--primary {
+  display: block !important;
+}
+
+/* Hide right table of contents */
+.md-sidebar--secondary {
+  display: none !important;
+}
+
+/* Hide search and footer meta (keep prev/next navigation) */
+.md-search,
+.md-footer-meta {
+  display: none !important;
+}
+
+/* Style the header */
+.md-header {
+  background-color: #0094FF !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+/* Style the drawer header to match */
+.md-nav--primary .md-nav__title {
+  background-color: #0094FF !important;
+}
+
+.md-nav--primary .md-nav__title[for="__drawer"] {
+  background-color: #0094FF !important;
+}
+
+/* Hide the logo/icon in drawer if desired, or style it */
+.md-nav__button.md-logo {
+  display: none !important;
+}
+
+/* Adjust main content layout */
+.md-main__inner {
+  margin: 0 !important;
+}
+
+.md-content {
+  margin-right: 0 !important;
+}
+
+.md-content__inner {
+  margin: 0 auto !important;
+  max-width: none !important;
+  padding: 1rem 1rem 4rem 1rem !important;
+}
+
+/* Remove top margin from content */
+.md-typeset {
+  margin-top: 0 !important;
+}
+
+/* Pin footer nav to bottom of viewport */
+.md-footer {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 10 !important;
+  opacity: 1 !important;
+  background-color: var(--md-default-bg-color) !important;
+}
+
+/* Always show prev/next text labels with ellipsis truncation */
+.md-footer__title {
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.md-footer__link {
+  min-width: 0 !important;
+  flex: 1 1 0 !important;
+}
