@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-generator-v1.3.0] - 2026-02-03
+
+### 🚀 Features
+
+- *(sandbox-instructions)* Instructions directory support (#6)
+
 ## [p3-sandbox-instructions-generator-v1.2.0] - 2025-10-02
 
 ### 🚀 Features
