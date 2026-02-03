@@ -14,7 +14,11 @@ RUN mkdir -p /home/user/.ssh && \
     chown -R 1000:1000 /home/user
 
 # Configure tmux for the user
-RUN echo "set -g status off" > /home/user/.tmux.conf && \
+RUN printf '%s\n' \
+    'set -g status off' \
+    'set -g mouse on' \
+    'set -g history-limit 10000' \
+    > /home/user/.tmux.conf && \
     chown 1000:1000 /home/user/.tmux.conf
 
 # Copy entrypoint script

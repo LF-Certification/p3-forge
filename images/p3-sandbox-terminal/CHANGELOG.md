@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-terminal-v1.3.1] - 2026-02-02
+
+### 🐛 Bug Fixes
+
+- Enable tmux mouse mode to allow scroll-wheel history in browser
+
 ## [p3-sandbox-terminal-v1.3.0] - 2025-08-14
 
 ### 🚀 Features
