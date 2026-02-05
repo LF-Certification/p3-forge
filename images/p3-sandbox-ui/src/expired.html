@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Session Expired - LF Education</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -11,66 +17,196 @@
       crossorigin="anonymous"
     />
     <style>
+      :root {
+        --brand-navy: #003778;
+        --brand-azure: #0094ff;
+        --brand-purple: #5b1de7;
+        --brand-gray-50: #f6f7fa;
+        --brand-gray-200: #d6d6d6;
+        --brand-gray-600: #818183;
+        --brand-gray-900: #222222;
+        --shell-focus: #0094ff;
+        --shell-header-height: 56px;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
       body {
-        min-height: 100vh;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow-x: hidden;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        font-family: "Manrope", "Sora", sans-serif;
+        color: var(--brand-gray-900);
+        background: #ffffff;
+      }
+
+      .expired-header {
+        min-height: var(--shell-header-height);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--brand-gray-200);
+        background: #ffffff;
+      }
+
+      .expired-brand {
+        font-family: "Sora", "Manrope", sans-serif;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--brand-navy);
+      }
+
+      .expired-main {
+        flex: 1 1 auto;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 24px 16px;
+        background: var(--brand-gray-50);
       }
+
       .expired-container {
-        background: white;
-        border-radius: 1rem;
-        padding: 3rem;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        max-width: 500px;
-        text-align: center;
+        width: min(760px, 100%);
+        background: #ffffff;
+        border-top: 2px solid var(--brand-navy);
+        border-bottom: 1px solid var(--brand-gray-200);
+        padding: 2rem 1.75rem;
+        box-shadow: none;
       }
-      .clock-icon {
-        font-size: 4rem;
-        color: #6c757d;
-        margin-bottom: 1rem;
-      }
-      .btn-return {
-        background: #003778;
-        border: none;
-        padding: 0.75rem 2rem;
-        font-size: 1.1rem;
-        transition: all 0.3s ease;
-      }
-      .btn-return:hover {
-        background: #002c60;
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0, 55, 120, 0.3);
-      }
-      h1 {
-        color: #222222;
+
+      .status-label {
+        margin: 0 0 0.5rem;
+        color: var(--brand-azure);
+        font-family: "Sora", "Manrope", sans-serif;
+        font-size: 0.72rem;
         font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
       }
+
+      h1 {
+        margin: 0 0 1rem;
+        color: var(--brand-gray-900);
+        font-family: "Sora", "Manrope", sans-serif;
+        font-size: clamp(1.55rem, 2.4vw, 2rem);
+        font-weight: 600;
+        line-height: 1.2;
+      }
+
       .lead {
-        color: #6c757d;
+        margin: 0;
+        color: var(--brand-gray-900);
+        font-size: 1.05rem;
+        font-weight: 400;
+      }
+
+      .details {
+        margin: 0.85rem 0 0;
+        color: var(--brand-gray-600);
+      }
+
+      .actions {
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--brand-gray-200);
+      }
+
+      .btn-return {
+        background: var(--brand-navy);
+        border: 1px solid var(--brand-navy);
+        color: #ffffff;
+        border-radius: 0;
+        padding: 0.65rem 1.75rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        box-shadow: none;
+        transition: background-color 0.16s ease, border-color 0.16s ease;
+      }
+
+      .btn-return:hover {
+        background: var(--brand-purple);
+        border-color: var(--brand-purple);
+      }
+
+      .btn-return:focus-visible {
+        outline: 2px solid var(--shell-focus);
+        outline-offset: 2px;
+        box-shadow: none;
+      }
+
+      .btn-return:focus {
+        box-shadow: none;
+      }
+
+      .support-note {
+        margin: 1.25rem 0 0;
+        padding-top: 1rem;
+        border-top: 1px solid var(--brand-gray-200);
+        color: var(--brand-gray-600);
+      }
+
+      @media (max-width: 767px) {
+        .expired-main {
+          padding: 16px;
+          align-items: flex-start;
+        }
+
+        .expired-container {
+          padding: 1.5rem 1.25rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="expired-container">
-      <div class="clock-icon">⏱️</div>
-      <h1 class="mb-4">Session Expired</h1>
-      <p class="lead mb-4">
-        Your sandbox session has reached its time limit and has been closed.
-      </p>
-      <p class="text-muted mb-4">
-        To continue working, please return to where you launched this sandbox
-        and start a new session.
-      </p>
-      <button class="btn btn-primary btn-return" onclick="handleReturn()">
-        Close this Tab
-      </button>
-      <hr class="my-4">
-      <small class="text-muted">
-        If you need assistance, please contact your course administrator.
-      </small>
-    </div>
+    <header class="expired-header">
+      <div class="expired-brand">LF Education Sandbox</div>
+    </header>
+    <main class="expired-main">
+      <section class="expired-container" role="alert" aria-live="polite">
+        <p class="status-label">Session Status</p>
+        <h1>Session Expired</h1>
+        <p class="lead">
+          Your sandbox session has reached its time limit and has been closed.
+        </p>
+        <p class="details">
+          To continue working, return to where you launched this sandbox and
+          start a new session.
+        </p>
+        <div class="actions">
+          <button class="btn btn-primary btn-return" onclick="handleReturn()">
+            Close this Tab
+          </button>
+        </div>
+        <p class="support-note mb-0">
+          If you need assistance, contact your course administrator.
+        </p>
+      </section>
+    </main>
 
     <script>
       function handleReturn() {

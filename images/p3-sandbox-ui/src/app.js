@@ -54,26 +54,154 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Initialize Split.js for resizable panes (only if instructions exist and desktop)
+    // Initialize Split.js for resizable panes (instructions + desktop only)
+    const DESKTOP_BREAKPOINT = 768;
+    const SPLIT_STATE_STORAGE_KEY = 'lf-sandbox-ui-split-state-v1';
+    const DEFAULT_SPLIT_SIZES = [25, 75];
     let splitInstance = null;
     let isCollapsed = false;
+    let savedSplitSizes = [...DEFAULT_SPLIT_SIZES];
+    let resizeDebounceTimer = null;
+    let expandTab = null;
+    let toggleBtn = null;
+    let toggleIcon = null;
+    let desktopMediaQuery = null;
+    let rootResizeObserver = null;
 
-    if (instructionsTool && window.innerWidth >= 768) {
-        splitInstance = Split(["#instructions-sidebar", "#tool-pane"], {
-            sizes: [25, 75],
-            minSize: [0, 400],
-            gutterSize: 10,
-            cursor: 'col-resize',
-            snapOffset: 0
+    function sanitizeSplitSizes(value) {
+        if (!Array.isArray(value) || value.length !== 2) {
+            return [...DEFAULT_SPLIT_SIZES];
+        }
+
+        const left = Number(value[0]);
+        const right = Number(value[1]);
+        if (!Number.isFinite(left) || !Number.isFinite(right)) {
+            return [...DEFAULT_SPLIT_SIZES];
+        }
+
+        const total = left + right;
+        if (total <= 0) {
+            return [...DEFAULT_SPLIT_SIZES];
+        }
+
+        const normalizedLeft = Math.max(0, Math.min(100, (left / total) * 100));
+        const normalizedRight = 100 - normalizedLeft;
+        return [normalizedLeft, normalizedRight];
+    }
+
+    function readPersistedSplitState() {
+        try {
+            const stored = sessionStorage.getItem(SPLIT_STATE_STORAGE_KEY);
+            if (!stored) {
+                return;
+            }
+
+            const parsed = JSON.parse(stored);
+            savedSplitSizes = sanitizeSplitSizes(parsed.sizes);
+            isCollapsed = parsed.collapsed === true;
+        } catch (error) {
+            // Ignore malformed session state and fall back to defaults.
+        }
+    }
+
+    function persistSplitState() {
+        if (!instructionsTool) {
+            return;
+        }
+
+        try {
+            const payload = JSON.stringify({
+                sizes: savedSplitSizes,
+                collapsed: isCollapsed
+            });
+            sessionStorage.setItem(SPLIT_STATE_STORAGE_KEY, payload);
+        } catch (error) {
+            // Ignore storage write failures (e.g., blocked storage policies).
+        }
+    }
+
+    function clearSplitInlineSizing() {
+        [instructionsSidebar, toolPane].forEach((pane) => {
+            if (!pane) {
+                return;
+            }
+            pane.style.removeProperty('width');
+            pane.style.removeProperty('min-width');
+            pane.style.removeProperty('max-width');
+            pane.style.removeProperty('flex');
+            pane.style.removeProperty('flex-basis');
+            pane.style.removeProperty('flex-grow');
+            pane.style.removeProperty('flex-shrink');
         });
+    }
 
-        // Create expand tab for collapsed state
-        const expandTab = document.createElement('div');
+    function updateSplitToggleUI() {
+        const shouldShowExpandControl = Boolean(splitInstance && isCollapsed);
+
+        if (expandTab) {
+            expandTab.classList.toggle('visible', shouldShowExpandControl);
+            expandTab.setAttribute('aria-hidden', shouldShowExpandControl ? 'false' : 'true');
+            expandTab.setAttribute('aria-label', 'Expand instructions panel');
+            expandTab.setAttribute('tabindex', shouldShowExpandControl ? '0' : '-1');
+        }
+
+        if (toggleBtn) {
+            toggleBtn.setAttribute(
+                'aria-label',
+                isCollapsed ? 'Expand instructions panel' : 'Collapse instructions panel'
+            );
+        }
+
+        if (toggleIcon) {
+            toggleIcon.classList.toggle('flipped', isCollapsed);
+        }
+    }
+
+    function toggleInstructions() {
+        if (!splitInstance) {
+            return;
+        }
+
+        if (isCollapsed) {
+            splitInstance.setSizes(savedSplitSizes);
+            isCollapsed = false;
+        } else {
+            const currentSizes = typeof splitInstance.getSizes === 'function'
+                ? splitInstance.getSizes()
+                : null;
+
+            if (Array.isArray(currentSizes) && currentSizes[0] > 0) {
+                savedSplitSizes = sanitizeSplitSizes(currentSizes);
+            }
+
+            splitInstance.setSizes([0, 100]);
+            isCollapsed = true;
+        }
+
+        updateSplitToggleUI();
+        persistSplitState();
+    }
+
+    function handleExpandTabKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            toggleInstructions();
+        }
+    }
+
+    function ensureExpandTab() {
+        if (expandTab) {
+            return;
+        }
+
+        expandTab = document.createElement('div');
         expandTab.className = 'instructions-expand-tab';
-        // Wrap letters in individual divs, append a matching chevron icon
+
+        // Wrap letters individually for vertical label styling.
         const instructionsHtml = 'Instructions'.split('').map(char =>
             char === ' ' ? '<span style="height: 8px"></span>' : `<div>${char}</div>`
         ).join('');
+
         expandTab.innerHTML = `
             <div class="instructions-expand-label">${instructionsHtml}</div>
             <div class="instructions-expand-arrow">
@@ -82,44 +210,127 @@ document.addEventListener('DOMContentLoaded', function() {
                 </svg>
             </div>
         `;
+
         expandTab.setAttribute('role', 'button');
-        expandTab.setAttribute('aria-label', 'Expand instructions');
+        expandTab.setAttribute('aria-hidden', 'true');
+        expandTab.setAttribute('tabindex', '-1');
+        expandTab.addEventListener('click', toggleInstructions);
+        expandTab.addEventListener('keydown', handleExpandTabKeydown);
         document.body.appendChild(expandTab);
+    }
 
-        // Create toggle button on gutter
+    function attachGutterToggle() {
         const gutter = document.querySelector('.gutter');
-        if (gutter) {
-            const toggleBtn = document.createElement('button');
-            toggleBtn.className = 'gutter-toggle';
-            toggleBtn.setAttribute('aria-label', 'Toggle instructions panel');
-            toggleBtn.innerHTML = `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-                <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
-            </svg>`;
-            const toggleIcon = toggleBtn.querySelector('svg');
-            gutter.appendChild(toggleBtn);
+        if (!gutter) {
+            return;
+        }
 
-            // Toggle function
-            function toggleInstructions() {
-                if (isCollapsed) {
-                    // Expand
-                    splitInstance.setSizes([25, 75]);
-                    isCollapsed = false;
-                    expandTab.classList.remove('visible');
-                    toggleIcon.classList.remove('flipped');
-                    toggleBtn.setAttribute('aria-label', 'Collapse instructions panel');
-                } else {
-                    // Collapse
-                    splitInstance.setSizes([0, 100]);
-                    isCollapsed = true;
-                    expandTab.classList.add('visible');
-                    toggleIcon.classList.add('flipped');
-                    toggleBtn.setAttribute('aria-label', 'Expand instructions panel');
+        if (toggleBtn) {
+            toggleBtn.remove();
+            toggleBtn = null;
+            toggleIcon = null;
+        }
+
+        toggleBtn = document.createElement('button');
+        toggleBtn.className = 'gutter-toggle';
+        toggleBtn.innerHTML = `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+        </svg>`;
+
+        toggleIcon = toggleBtn.querySelector('svg');
+        toggleBtn.addEventListener('click', toggleInstructions);
+        gutter.appendChild(toggleBtn);
+        updateSplitToggleUI();
+    }
+
+    function destroySplitLayout() {
+        if (splitInstance) {
+            splitInstance.destroy();
+            splitInstance = null;
+        }
+
+        if (toggleBtn) {
+            toggleBtn.remove();
+            toggleBtn = null;
+            toggleIcon = null;
+        }
+
+        if (expandTab) {
+            expandTab.classList.remove('visible');
+            expandTab.setAttribute('aria-hidden', 'true');
+            expandTab.setAttribute('tabindex', '-1');
+        }
+
+        clearSplitInlineSizing();
+    }
+
+    function initDesktopSplitLayout() {
+        if (splitInstance || !instructionsTool) {
+            return;
+        }
+
+        splitInstance = Split(["#instructions-sidebar", "#tool-pane"], {
+            sizes: isCollapsed ? [0, 100] : savedSplitSizes,
+            minSize: [0, 400],
+            gutterSize: 10,
+            cursor: 'col-resize',
+            snapOffset: 0,
+            onDragEnd: () => {
+                if (isCollapsed || typeof splitInstance.getSizes !== 'function') {
+                    return;
+                }
+
+                const sizes = splitInstance.getSizes();
+                if (Array.isArray(sizes) && sizes[0] > 0) {
+                    savedSplitSizes = sanitizeSplitSizes(sizes);
+                    persistSplitState();
                 }
             }
+        });
 
-            // Attach event listeners
-            toggleBtn.addEventListener('click', toggleInstructions);
-            expandTab.addEventListener('click', toggleInstructions);
+        ensureExpandTab();
+        attachGutterToggle();
+        updateSplitToggleUI();
+    }
+
+    function updateResponsiveSplitLayout() {
+        if (!instructionsTool) {
+            return;
+        }
+
+        if (window.innerWidth >= DESKTOP_BREAKPOINT) {
+            initDesktopSplitLayout();
+        } else {
+            destroySplitLayout();
+        }
+    }
+
+    function scheduleResponsiveSplitUpdate() {
+        window.clearTimeout(resizeDebounceTimer);
+        resizeDebounceTimer = window.setTimeout(updateResponsiveSplitLayout, 120);
+    }
+
+    if (instructionsTool) {
+        readPersistedSplitState();
+        updateResponsiveSplitLayout();
+
+        window.addEventListener('resize', scheduleResponsiveSplitUpdate);
+        window.addEventListener('orientationchange', scheduleResponsiveSplitUpdate);
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', scheduleResponsiveSplitUpdate);
+        }
+
+        desktopMediaQuery = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`);
+        if (typeof desktopMediaQuery.addEventListener === 'function') {
+            desktopMediaQuery.addEventListener('change', scheduleResponsiveSplitUpdate);
+        } else if (typeof desktopMediaQuery.addListener === 'function') {
+            desktopMediaQuery.addListener(scheduleResponsiveSplitUpdate);
+        }
+
+        if (typeof ResizeObserver === 'function') {
+            rootResizeObserver = new ResizeObserver(scheduleResponsiveSplitUpdate);
+            rootResizeObserver.observe(document.documentElement);
         }
     }
 
@@ -181,21 +392,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function formatTimeLeft(timeLeftMs) {
+        const totalSeconds = Math.max(0, Math.floor(timeLeftMs / 1000));
+        const totalHours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${totalHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
     function updateTimer() {
         const now = new Date();
         const timeLeft = expirationDate - now;
 
         if (timeLeft <= 0) {
-            document.getElementById('timer-display').textContent = '00:00';
+            document.getElementById('timer-display').textContent = '00:00:00';
             // Add a small delay to ensure the user sees 00:00 briefly
             setTimeout(handleExpiration, 1000);
             return;
         }
 
-        const minutes = Math.floor(timeLeft / (1000 * 60));
-        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-        const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        const formattedTime = formatTimeLeft(timeLeft);
         document.getElementById('timer-display').textContent = formattedTime;
     }
 
