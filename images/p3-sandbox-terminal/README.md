@@ -43,8 +43,9 @@ The container expects SSH credentials to be mounted at:
 1. **Configuration Parsing**: Parses JSON configuration from environment variable
 2. **SSH Setup**: Configures SSH with provided keys and proper permissions
 3. **Terminal Session**: Starts ttyd with tmux session that auto-reconnects on failure
-4. **Scrollback Support**: Enables tmux mouse mode for browser scroll-wheel history
-4. **Persistent Sessions**: Uses tmux session named "remote" for connection persistence
+4. **Scrollback Support**: Enables tmux mouse mode for scroll-wheel history browsing
+5. **Clipboard Support**: Enables xterm.js force-selection so Shift+drag (Linux/Windows) or Option+drag (macOS) bypasses tmux mouse capture for native clipboard copy
+6. **Persistent Sessions**: Uses tmux session named "remote" for connection persistence
 
 ## Integration with Sandbox Operator
 

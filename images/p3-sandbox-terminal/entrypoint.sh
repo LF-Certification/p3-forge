@@ -51,4 +51,4 @@ SSH_COMMAND="ssh $SSH_OPTS ${TARGET_USER}@${TARGET_HOST}"
 echo "Starting ttyd with auto-reconnecting SSH session..."
 echo "SSH command: $SSH_COMMAND"
 
-exec ttyd -t fontSize=$FONT_SIZE -W tmux new-session -A -s remote "while true; do $SSH_COMMAND || echo \"SSH failed with exit code \$?\"; echo \"Reconnecting in $RETRY_INTERVAL seconds...\"; sleep $RETRY_INTERVAL; done"
+exec ttyd -t fontSize=$FONT_SIZE -t macOptionClickForcesSelection=true -W tmux new-session -A -s remote "while true; do $SSH_COMMAND || echo \"SSH failed with exit code \$?\"; echo \"Reconnecting in $RETRY_INTERVAL seconds...\"; sleep $RETRY_INTERVAL; done"
