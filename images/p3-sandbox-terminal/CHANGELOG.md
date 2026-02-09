@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-terminal-v1.3.2] - 2026-02-09
+
+### 🐛 Bug Fixes
+
+- Enable scrollback and clipboard in ttyd/tmux
+
 ## [p3-sandbox-terminal-v1.3.1] - 2026-02-03
 
 ### 🐛 Bug Fixes
