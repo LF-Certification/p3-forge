@@ -1,5 +1,23 @@
 # Changelog
 
+## [p3-sandbox-ui-v1.7.0] - 2026-02-10
+
+### 🚀 Features
+
+- *(ui)* Redesign sandbox shell and expiration UX
+
+## [p3-sandbox-ui-v1.6.0] - 2025-11-18
+
+### 🚀 Features
+
+- Implement collapsible instructions split pane
+
+## [p3-sandbox-ui-v1.5.0] - 2025-11-18
+
+### 🚀 Features
+
+- Add showTimer config to control timer visibility
+
 ## [p3-sandbox-ui-v1.4.1] - 2025-09-26
 
 ### 🐛 Bug Fixes
