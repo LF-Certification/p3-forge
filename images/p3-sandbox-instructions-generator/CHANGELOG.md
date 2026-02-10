@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-instructions-generator-v1.3.1] - 2026-02-10
+
+### 🐛 Bug Fixes
+
+- *(sandbox-instructions)* Fix footer covering content and invisible nav links
+
 ## [p3-sandbox-instructions-generator-v1.3.0] - 2026-02-03
 
 ### 🚀 Features
