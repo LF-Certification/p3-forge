@@ -28,6 +28,9 @@ case "$os" in
 		tldr
 	;;
 	debian|ubuntu)
+	tldr=tldr-py
+	unminimize=
+	[[ "$os" = "ubuntu" ]] && tldr=tldr-py unminimize=unminimize
 	export DEBIAN_FRONTEND=noninteractive
 	apt-get update
 	apt-get upgrade -y
@@ -40,8 +43,8 @@ case "$os" in
 		man-db \
 		nano \
 		sudo \
-		tldr \
-		unminimize \
+		$tldr \
+		$unminimize \
 		vim
 	;;
 esac
@@ -67,5 +70,13 @@ EOF
 chmod 0600 ~/.ssh/id_ed25519
 echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMn/tmkXW8N/sXy/65mYakzS28AekdXisAvbub3OBvbU" |tee ~/.ssh/{id_ed25519.pub,authorized_keys}
 }
+
+# Cleanup
+case "$os" in
+  debian|ubuntu)
+	apt-get clean
+	rm -rf /var/lib/apt/lists/*
+	;;
+esac
 
 # vim: syntax=bash
