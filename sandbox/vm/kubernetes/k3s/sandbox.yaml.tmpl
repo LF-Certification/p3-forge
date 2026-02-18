@@ -1,0 +1,9 @@
+apiVersion: p3.ed.linuxfoundation.org/v1alpha1
+kind: SandboxBlueprint
+metadata:
+  name: sandbox-vm-k3s
+spec:
+  virtualmachines:
+    - name: base
+      baseImage: "{distro}"
+      user: tux

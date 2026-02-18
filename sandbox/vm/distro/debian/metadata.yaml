@@ -1,0 +1,4 @@
+settings:
+  distro_version: [trixie]
+  upstream_image: [quay.io/containerdisks/debian]
+  upstream_image_tag: [13-2602110210]

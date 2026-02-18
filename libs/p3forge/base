@@ -1,0 +1,71 @@
+# shellcheck shell=bash
+
+function p3forge::base() {
+# Check if run before
+if id tux &>/dev/null; then
+    echo "p3forge::base: user \`tux\` already exists, skipping"
+    return 0
+fi
+
+# Gather information
+arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+os="$(grep '^ID=' /etc/os-release | sed 's/ID=//')"
+
+# Install base apps and packages
+case "$os" in
+	alpine)
+	apk upgrade
+	apk add \
+		bash-completion \
+		cloud-init \
+		emacs-nox \
+		less \
+		man-db \
+		nano \
+		sudo \
+		vim
+	apk add --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
+		tldr
+	;;
+	debian|ubuntu)
+	export DEBIAN_FRONTEND=noninteractive
+	apt-get update
+	apt-get upgrade -y
+	apt-get purge -y unattended-upgrades
+	apt-get install -y --no-install-recommends \
+		bash-completion \
+		cloud-init \
+		emacs-nox \
+		less \
+		man-db \
+		nano \
+		sudo \
+		tldr \
+		unminimize \
+		vim
+	;;
+esac
+
+wget "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${arch}" \
+  -O /usr/bin/yq && chmod +x /usr/bin/yq
+
+# Create tux user
+useradd --uid 60000 --create-home --shell /bin/bash --groups sudo tux || true
+passwd --delete tux
+
+# Disable strict host key checking and create a shared SSH key so SSH commands work in scripts
+echo -e "StrictHostKeyChecking no\nUserKnownHostsFile /dev/null" > /etc/ssh/ssh_config.d/10-disable-stricthostkeychecking.conf
+cat <<EOF >~/.ssh/id_ed25519
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACDJ/7ZpF1vDf7F8v+uZmGpM0tvAHpHV4rAL27m9zgb21AAAAJDS/0eK0v9H
+igAAAAtzc2gtZWQyNTUxOQAAACDJ/7ZpF1vDf7F8v+uZmGpM0tvAHpHV4rAL27m9zgb21A
+AAAEDfgDw+BSnV9Y876RSZxoJExTUJDt+AzmGDr6APG9cBrMn/tmkXW8N/sXy/65mYakzS
+28AekdXisAvbub3OBvbUAAAACGR4c0BsdW5hAQIDBAU=
+-----END OPENSSH PRIVATE KEY-----
+EOF
+chmod 0600 ~/.ssh/id_ed25519
+echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMn/tmkXW8N/sXy/65mYakzS28AekdXisAvbub3OBvbU" |tee ~/.ssh/{id_ed25519.pub,authorized_keys}
+}
+
+# vim: syntax=bash

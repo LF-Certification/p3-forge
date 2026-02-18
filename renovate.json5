@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^sandbox/vm/distro/.*/metadata\\.yaml$"],
+      "matchStrings": [
+        "upstream_image:\\s*\\[(?<depName>[^\\]]+)\\]\\n\\s*upstream_image_tag:\\s*\\[\"?(?<currentValue>[^\"\\]]+)\"?\\]"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["quay.io/containerdisks/ubuntu", "quay.io/containerdisks/debian"],
+      "versioning": "regex:^(?<major>\\d+\\.\\d+)-(?<patch>\\d+)$"
+    },
+    {
+      "matchPaths": ["sandbox/vm/distro/**"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "prBodyNotes": ["⚠️ Major version update requires manual `distro_version` codename update"]
+    }
+  ]
+}

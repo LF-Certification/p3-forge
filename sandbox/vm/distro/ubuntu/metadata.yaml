@@ -1,0 +1,4 @@
+settings:
+  distro_version: [noble]
+  upstream_image: [quay.io/containerdisks/ubuntu]
+  upstream_image_tag: [24.04-2602140210]

@@ -1,0 +1,9 @@
+apiVersion: p3.ed.linuxfoundation.org/v1alpha1
+kind: SandboxBlueprint
+metadata:
+  name: sandbox-vm-debian
+spec:
+  virtualmachines:
+    - name: base
+      baseImage: "{upstream_image}:{upstream_image_tag}"
+      user: root
