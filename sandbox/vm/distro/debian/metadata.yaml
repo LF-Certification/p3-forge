@@ -1,3 +1,4 @@
+type: base
 settings:
   distro_version: [trixie]
   upstream_image: [quay.io/containerdisks/debian]

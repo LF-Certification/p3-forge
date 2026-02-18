@@ -1,3 +1,4 @@
+type: base
 settings:
   distro_version: [noble]
   upstream_image: [quay.io/containerdisks/ubuntu]
