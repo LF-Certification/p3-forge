@@ -1,0 +1,28 @@
+# Dispatch sandbox builds to sandbox-building-service when VM base images
+# or kubernetes configurations change.
+name: Dispatch Sandbox VM Builds
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "sandbox/**"
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    name: Dispatch to Sandbox Building Service
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger SBS p3forge build
+        env:
+          GH_TOKEN: ${{ secrets.SBS_DISPATCH_PAT }}
+        run: |
+          set -eo pipefail
+
+          echo "Dispatching p3-forge build to sandbox-building-service"
+          gh workflow run p3forge-build.yml \
+            --repo LF-Certification/sandbox-building-service \
+            --field caller_sha="${{ github.sha }}" \
+            --field caller_ref_name="${{ github.ref_name }}"
