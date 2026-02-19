@@ -79,4 +79,7 @@ case "$os" in
 	;;
 esac
 
+# Enable FUSE user mounts (sometimes needed for lima)
+[ -f /etc/fuse.conf ] && sed -i 's/^#user_allow_other/user_allow_other/' /etc/fuse.conf
+
 # vim: syntax=bash
