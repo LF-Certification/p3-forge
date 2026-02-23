@@ -24,5 +24,4 @@ jobs:
           echo "Dispatching p3-forge build to sandbox-building-service"
           gh workflow run p3forge-build.yml \
             --repo LF-Certification/sandbox-building-service \
-            --field caller_sha="${{ github.sha }}" \
-            --field caller_ref_name="${{ github.ref_name }}"
+            --field caller_sha="${{ github.sha }}"
