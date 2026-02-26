@@ -1,0 +1,183 @@
+# shellcheck shell=bash
+
+#include kubeadm/install_
+#include container/create_system
+#include net/dummy
+#include k8s/configure_kubectl
+#include system/get_user
+#include container/get_cri
+#include container/get_runtime
+
+# kubeadm::create_cluster
+# Initializes a Kubernetes cluster using kubeadm with the installed Kubernetes version and
+# optionally sets up worker nodes.
+#
+# Description:
+#   This function initializes a Kubernetes cluster using the installed Kubernetes version. It
+#   configures the system to use Docker and cri-dockerd, sets up the Kubernetes configuration
+#   files, and initializes the cluster using kubeadm. If worker nodes are specified, it loads the
+#   worker image into Docker, creates Docker containers for each worker, and joins them to the
+#   cluster. It also handles permissions for Kubernetes configuration files and ensures all nodes
+#   and pods are ready before completing. Optionally, it creates a dynamic PV provisioner (storage
+#   class).
+#
+# Usage:
+#   kubeadm::create_cluster [workers] [workerImage] [cni] [cniVersion] [storageClass]
+#
+# Parameters:
+#   workers (optional): Number of worker nodes to create (default: 0).
+#   workerImage (optional): Docker image for worker nodes (default:
+#                           ghcr.io/lf-certification/exam-item:debian-12-systemd-k8s).
+#   cni (optional): Container Network Interface plugin to use (default: kuberouter).
+#   cniVersion (optional): Specific version of the CNI plugin (default: latest available).
+#   storageClass (optional): StorageClass to be used (default: none).
+#
+# Outputs:
+#   None directly. The function initializes a Kubernetes cluster using the installed Kubernetes
+#   version and optionally adds worker nodes.
+function kubeadm::create_cluster() {
+  local workers=${1:-${workers:-0}}
+  local workerImage=${2:-${workerImage:-}}
+  local cni=${3:-${cni:-kuberouter}}
+  local cniVersion=${4:-${cniVersion:-}}
+  local storageClass=${5:-${storageClass:-none}}
+  local containerCri=${6:-${containerCri:-}}
+
+  local cri services ip runtime
+  cri="$(container::get_cri)" # gets overridden by containerCri if present
+  case $cri in
+    docker)
+      runtime=docker
+      services=(docker cri-dockerd)
+      ip="$(docker network inspect bridge | yq .[0].IPAM.Config[0].Subnet | cut -d. -f1-3).1"
+      crisocket="unix:///var/run/cri-dockerd.sock"
+      ;;
+    containerd)
+      services=(containerd)
+      ip="$(net::dummy)"
+      crisocket="unix:///run/containerd/containerd.sock"
+      if [[ "$workers" -gt 0 ]]; then
+        command -v nerdctl &>/dev/null || {
+          echo "Error: nerdctl is required for worker nodes with containerd" >&2
+          return 1
+        }
+        runtime=nerdctl
+      fi
+      ;;
+    *)
+      echo "Neither docker nor containerd found"
+      exit 1
+  esac
+
+  systemctl enable --now "${services[@]}"
+
+  local kubernetesVersion
+  kubernetesVersion=$(kubeadm version -o yaml | yq '.clientVersion.gitVersion')
+
+  if [[ -z "$workerImage" ]]; then
+    if [[ $cri = "docker" ]]; then
+      workerImage="ghcr.io/lf-certification/exam-item:debian-12-systemd-k8s"
+    else
+      local k8sMinor distro
+      k8sMinor=$(echo "$kubernetesVersion" | grep -oP '\d+\.\d+')
+      # shellcheck source=/dev/null
+      source /etc/os-release
+      distro=$ID
+      workerImage="ghcr.io/lf-certification/sandbox-vm-k8sn:${k8sMinor}-${distro}"
+    fi
+  fi
+  cat >/etc/kubeadm.conf <<-EOT
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: "${crisocket}"
+localAPIEndpoint:
+  advertiseAddress: $ip
+  bindPort: 6443
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+conntrack:
+  maxPerCore: 0
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: $kubernetesVersion
+networking:
+  podSubnet: 192.168.0.0/16
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+failSwapOn: false
+featureGates:
+  NodeSwap: true
+EOT
+
+  kubeadm config images pull --cri-socket "${crisocket}" \
+    --kubernetes-version "$kubernetesVersion"
+  kubeadm init --config /etc/kubeadm.conf
+  systemctl enable kubelet --now # kubeadm init starts the kubelet, but it is not enabled by default
+
+  # avoid having too many FAIL entries in the logs; required by some items on e.g. CKS
+  chmod 600 /lib/systemd/system/kubelet.service /var/lib/kubelet/config.yaml
+
+  k8s::configure_kubectl
+
+  kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+  if [[ "$storageClass" != "none" ]]; then
+    "kubeadm::install_$storageClass"
+  fi
+  version=$cniVersion "kubeadm::install_$cni"
+
+  kubectl wait --for=condition=Ready nodes --all --timeout=60m
+  kubectl wait --for=condition=Ready pod -A --all --timeout=60m
+
+  local joinCommand
+  joinCommand=$(kubeadm token create --print-join-command 2>/dev/null | tr -d "\r")
+
+  if [[ "$workers" -gt 0 ]]; then
+    local user
+    user=$(system::get_user)
+
+    # check if worker image is a file and needs to be loaded (instead of pulled)
+    if [[ -f "$workerImage" ]]; then
+      workerImage=$($runtime load -i "$workerImage" | grep "Loaded image: " | cut -d: -f2- | tr -d '[:space:]')
+    fi
+
+    local i
+    for ((i = 0; i < workers; i++)); do
+      local node="compute-$i"
+
+      $runtime volume create "${node}-${cri}"
+      # the options -v /sys/fs/bpf:/sys/fs/bpf:rshared -v /run/cilium/cgroupv2:/run/cilium/cgroupv2:rshared were necessary for cilium to work.
+      # the volume for Docker (in Docker) is required to be able to use fuse-overlayfs on top of
+      # fuse-overlayfs on top of overlayfs
+      name=$node image="$workerImage" \
+        arguments="-v /sys/fs/bpf:/sys/fs/bpf:rshared -v /run/cilium/cgroupv2:/run/cilium/cgroupv2:rshared -v ${node}-${cri}:/var/lib/${cri}" \
+        container::create_system
+      $runtime exec -i "$node" bash -ex <<CONTAINER
+#In case the following installation fails, rebuild the debian-12 image and debian-12-k8s
+export DEBIAN_FRONTEND=noninteractive
+apt-get install -y --no-install-recommends "linux-image-$(uname -r)" || \
+    apt-get install -y --no-install-recommends "linux-image-$(uname -r)-unsigned"
+
+systemctl enable --now "${services[@]}"
+
+kubeadm config images pull --cri-socket "${crisocket}" \
+    --kubernetes-version "$kubernetesVersion"
+
+# shellcheck disable=SC2086
+$joinCommand --cri-socket "${crisocket}"
+systemctl enable kubelet --now
+mkdir -p /root/.kube
+sudo -u $user mkdir -p /home/$user/.kube
+CONTAINER
+      $runtime cp /root/.kube/config "$node:/root/.kube"
+      $runtime cp /root/.kube/config "$node:/home/$user/.kube"
+      $runtime exec "$node" chown "$user:$user" "/home/$user/.kube/config"
+      kubectl wait --for=condition=Ready nodes --all --timeout=60m
+      kubectl wait --for=condition=Ready pod -A --all --timeout=60m
+    done
+  fi
+}

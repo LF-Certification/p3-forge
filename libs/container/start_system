@@ -1,0 +1,53 @@
+# shellcheck shell=bash
+
+#include container/get_runtime
+
+# container::start_system
+# Starts a specified system container and configures SSH access.
+#
+# Description:
+#   This function initiates a Systemd system container by its name, ensures that the system
+#   services within the container are fully operational, and configures SSH access for both the
+#   host's user and the root user. It auto-detects the container runtime, preferring Docker and
+#   falling back to nerdctl. The function updates SSH configuration files to include the
+#   container's IP address, facilitating SSH access as if interacting with a standard system.
+#   It handles potential errors during the container startup and ensures the container is ready
+#   for use before proceeding.
+#
+# Usage:
+#   container::start_system [name]
+#
+# Parameters:
+#   name: The name of the Systemd system container to start. Must be provided either as an
+#         argument or as a pre-set variable, otherwise an error will be raised.
+#
+# Outputs:
+#   None directly. The function modifies the SSH configuration files (~/.ssh/config
+#   and /root/.ssh/config) to allow SSH access to the started system container.
+#
+function container::start_system() {
+  local name=${1:-${name:?must be set}}
+
+  local runtime
+  runtime=$(container::get_runtime)
+
+  set +e
+  sudo "$runtime" start "$name"
+  set -e
+  $runtime exec -i "$name" bash -x <<CONTAINER
+while ! systemctl is-system-running; do sleep 1; done
+CONTAINER
+
+  local ip
+  ip=$(sudo "$runtime" inspect "$name" |
+    yq -pjson -oyaml '.[0].NetworkSettings.Networks.bridge.IPAddress')
+
+  cat >>"$HOME/.ssh/config" <<EOT
+Host $name
+  Hostname $ip
+  UserKnownHostsFile /dev/null
+  StrictHostKeyChecking no
+EOT
+
+  sudo cp "$HOME/.ssh/config" /root/.ssh/config
+}

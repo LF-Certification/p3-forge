@@ -1,0 +1,32 @@
+# shellcheck shell=bash
+
+# container::get_runtime
+# Returns the container runtime CLI (docker or nerdctl).
+#
+# Description:
+#   Detects the available runtime CLI on the system, preferring docker and falling back to nerdctl.
+#   Useful for running container commands.
+#
+# Usage:
+#   runtime=$(container::get_runtime)
+#
+# Environment Variables:
+#   containerRuntime: Override auto-detection. Valid values: "docker", "nerdctl".
+#   containerCri: If "containerd" and containerRuntime is unset, implies "nerdctl".
+#
+# Outputs:
+#   Prints "docker" or "nerdctl" to stdout. Returns 1 if not found.
+#
+function container::get_runtime() {
+  local runtime
+  # Reverse order of precedence; last match wins
+  command -v nerdctl &>/dev/null && runtime=nerdctl
+  command -v docker &>/dev/null && runtime=docker
+  [[ "${containerCri:-}" == "containerd" ]] && runtime=nerdctl
+  [[ -n "${containerRuntime:-}" ]] && runtime="$containerRuntime"
+
+  [[ -n "${runtime:-}" ]] || { echo "Error: no suitable runtime found" >&2; return 1; }
+  command -v "$runtime" &>/dev/null || { echo "Error: $runtime not found" >&2; return 1; }
+
+  echo "$runtime"
+}

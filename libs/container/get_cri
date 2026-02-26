@@ -1,0 +1,32 @@
+# shellcheck shell=bash
+
+# container::get_cri
+# Returns the container runtime interface (docker or containerd).
+#
+# Description:
+#   Detects the available CRI on the system, preferring docker and falling back to containerd.
+#   Useful for determining which CRI socket to use with Kubernetes.
+#
+# Usage:
+#   cri=$(container::get_cri)
+#
+# Environment Variables:
+#   containerCri: Override auto-detection. Valid values: "docker", "containerd".
+#   containerRuntime: If "nerdctl" and containerCri is unset, implies "containerd".
+#
+# Outputs:
+#   Prints "docker" or "containerd" to stdout. Returns 1 if not found.
+#
+function container::get_cri() {
+  local cri
+  # Reverse order of precedence; last match wins
+  command -v containerd &>/dev/null && cri=containerd
+  command -v docker &>/dev/null && cri=docker
+  [[ "${containerRuntime:-}" == "nerdctl" ]] && cri=containerd
+  [[ -n "${containerCri:-}" ]] && cri="$containerCri"
+
+  [[ -n "${cri:-}" ]] || { echo "Error: no suitable CRI found" >&2; return 1; }
+  command -v "$cri" &>/dev/null || { echo "Error: $cri not found" >&2; return 1; }
+
+  echo "$cri"
+}
