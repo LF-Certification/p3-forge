@@ -17,7 +17,10 @@ case "$os" in
 	apk upgrade
 	apk add \
 		bash-completion \
+		ca-certificates \
 		cloud-init \
+		curl \
+		gpg \
 		less \
 		man-db \
 		nano \
@@ -32,8 +35,12 @@ case "$os" in
 	apt-get upgrade -y
 	apt-get purge -y unattended-upgrades
 	apt-get install -y --no-install-recommends \
+		apt-transport-https \
 		bash-completion \
+		ca-certificates \
 		cloud-init \
+		curl \
+		gpg \
 		less \
 		man-db \
 		nano \
