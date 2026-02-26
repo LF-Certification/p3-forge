@@ -18,7 +18,6 @@ case "$os" in
 	apk add \
 		bash-completion \
 		cloud-init \
-		emacs-nox \
 		less \
 		man-db \
 		nano \
@@ -28,9 +27,6 @@ case "$os" in
 		tldr
 	;;
 	debian|ubuntu)
-	tldr=tldr-py
-	unminimize=
-	[[ "$os" = "ubuntu" ]] && tldr=tldr-py unminimize=unminimize
 	export DEBIAN_FRONTEND=noninteractive
 	apt-get update
 	apt-get upgrade -y
@@ -38,18 +34,17 @@ case "$os" in
 	apt-get install -y --no-install-recommends \
 		bash-completion \
 		cloud-init \
-		emacs-nox \
 		less \
 		man-db \
 		nano \
 		sudo \
-		$tldr \
-		$unminimize \
+		tldr-py \
+		util-linux \
 		vim
 	;;
 esac
 
-wget "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${arch}" \
+wget -q "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${arch}" \
   -O /usr/bin/yq && chmod +x /usr/bin/yq
 
 # Create tux user
@@ -69,17 +64,11 @@ AAAEDfgDw+BSnV9Y876RSZxoJExTUJDt+AzmGDr6APG9cBrMn/tmkXW8N/sXy/65mYakzS
 EOF
 chmod 0600 ~/.ssh/id_ed25519
 echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMn/tmkXW8N/sXy/65mYakzS28AekdXisAvbub3OBvbU" |tee ~/.ssh/{id_ed25519.pub,authorized_keys}
-}
-
-# Cleanup
-case "$os" in
-  debian|ubuntu)
-	apt-get clean
-	rm -rf /var/lib/apt/lists/*
-	;;
-esac
 
 # Enable FUSE user mounts (sometimes needed for lima)
-[ -f /etc/fuse.conf ] && sed -i 's/^#user_allow_other/user_allow_other/' /etc/fuse.conf
+[ ! -f /etc/fuse.conf ] || sed -i 's/^#user_allow_other/user_allow_other/' /etc/fuse.conf
+
+cleanup::postbuild
+}
 
 # vim: syntax=bash
