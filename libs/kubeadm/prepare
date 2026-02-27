@@ -40,7 +40,7 @@ function kubeadm::prepare() {
   fi
 
   # Install packages
-  apt-get install -y containerd \
+  apt-get install -y containerd containernetworking-plugins \
     kubeadm="${version}-*" kubelet="${version}-*" kubectl="${version}-*"
   apt-mark hold kubeadm kubelet kubectl
 
