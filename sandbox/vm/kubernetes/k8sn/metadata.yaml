@@ -1,4 +1,4 @@
 type: base
 settings:
-  k8s_version: ["1.35"]
+  k8s_version: ["1.35.2"]
   distro: [debian]
