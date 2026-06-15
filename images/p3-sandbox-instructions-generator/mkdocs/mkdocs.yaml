@@ -10,9 +10,11 @@ theme:
 
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/inline-code-copy.css
 
 extra_javascript:
   - javascripts/external-links.js
+  - javascripts/inline-code-copy.js
 
 # Disable search for embedded use
 plugins: []
