@@ -1,5 +1,15 @@
 # Changelog
 
+## [p3-sandbox-instructions-generator-v1.4.0] - 2026-06-15
+
+### 🚀 Features
+
+- *(instructions)* Add copy annotation for inline code blocks
+
+### 🐛 Bug Fixes
+
+- *(instructions)* Fix EOF on inline-code-copy.js via pre-commit
+
 ## [p3-sandbox-instructions-generator-v1.3.1] - 2026-02-10
 
 ### 🐛 Bug Fixes
