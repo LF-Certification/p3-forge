@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### 🐛 Bug Fixes
+
+- Cancel browser-chrome shortcuts in the sandbox shell when focus is outside tool iframes; top-window close protection remains in the embedding PCI.
+
 ## [p3-sandbox-ui-v1.7.0] - 2026-02-10
 
 ### 🚀 Features

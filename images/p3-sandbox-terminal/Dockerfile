@@ -21,6 +21,8 @@ RUN printf '%s\n' \
     > /home/user/.tmux.conf && \
     chown 1000:1000 /home/user/.tmux.conf
 
+# Install terminal browser-shortcut guard in a custom ttyd index.
+COPY src/index.html /usr/share/ttyd/index.html
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

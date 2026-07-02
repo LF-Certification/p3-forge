@@ -46,6 +46,7 @@ The container expects SSH credentials to be mounted at:
 4. **Scrollback Support**: Enables tmux mouse mode for scroll-wheel history browsing
 5. **Clipboard Support**: Enables xterm.js force-selection so Shift+drag (Linux/Windows) or Option+drag (macOS) bypasses tmux mouse capture for native clipboard copy
 6. **Persistent Sessions**: Uses tmux session named "remote" for connection persistence
+7. **Browser Shortcut Guard**: Uses a custom ttyd index to cancel browser-chrome shortcuts (`Ctrl`/`Cmd`+`S`, `F`, `P`, `U`, `F1`, and backspace outside editable controls) in capture phase while leaving xterm's normal key handling to forward them to the pty. ttyd's nested-frame leave alert is disabled; top-window close protection belongs to the embedding PCI.
 
 ## Integration with Sandbox Operator
 

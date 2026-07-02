@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### 🐛 Bug Fixes
+
+- Cancel browser-chrome shortcuts in the focused ttyd terminal while disabling ttyd's nested-frame leave alert; top-window close protection remains in the embedding PCI.
+
 ## [p3-sandbox-terminal-v1.3.2] - 2026-02-09
 
 ### 🐛 Bug Fixes
