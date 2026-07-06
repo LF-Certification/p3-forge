@@ -38,7 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <iframe src="${instructionsTool.url}"
                         title="${instructionsTool.name}"
                         class="w-100 border-0 h-100"
-                        loading="lazy"
                         sandbox="allow-same-origin allow-scripts allow-popups allow-forms">
                 </iframe>
             `;
@@ -364,7 +363,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <iframe src="${isDefault ? tool.url : 'about:blank'}"
                     title="${tool.name}"
                     class="w-100 border-0 h-100"
-                    loading="lazy"
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms">
             </iframe>
         `;
