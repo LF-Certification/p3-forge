@@ -78,21 +78,21 @@ The checks that inspect the operating-system clipboard or the browser's native c
 - **Expected result:** The browser's native context menu opens. No tmux right-click menu opens, the marker is not pasted or executed, and the terminal remains usable after the menu is dismissed.
 - **Failure condition:** The browser menu is suppressed, a tmux menu appears, right-click inserts or executes text, or dismissing the menu leaves the terminal unusable.
 
-## 6. Paste exactly once with one middle-click
+## 6. Preserve platform-native middle-click behavior
 
-**Human-only browser check:** this scenario reads the host operating-system clipboard, and browser support or permission may vary.
+**Human-only browser check:** middle-button behavior belongs to the browser and operating system and cannot be validated by headless browser automation.
 
-- **Action:** Copy this complete command, including its final semicolon, from the instruction pane to the host clipboard:
+- **Action on Linux with primary-selection paste:** Select this complete command, including its final semicolon, without explicitly copying it to the system clipboard:
 
   ```sh
-  printf '%s\n' 'P3_MIDDLE_ONCE_7Q2';
+  printf '%s\n' 'P3_MIDDLE_NATIVE_7Q2';
   ```
 
   At an empty shell prompt, middle-click exactly once inside the terminal. Do not click again. Then press **Enter** separately once.
-
-- **Unique payload:** `P3_MIDDLE_ONCE_7Q2`
-- **Expected result:** Where the browser permits clipboard reads for middle-click, one copy of the command is pasted and pressing Enter prints exactly one `P3_MIDDLE_ONCE_7Q2` line. If clipboard access is denied or unsupported, no direct middle-click paste is expected; use keyboard or browser Paste only to confirm the shell remains usable, not to claim this check passed.
-- **Failure condition:** With clipboard read permission granted, the single middle-click pastes or executes two copies and the marker prints twice, or it pastes an altered command. Clipboard denial by the browser is an unsupported outcome rather than evidence of duplicate handling.
+- **Action on macOS or platforms without primary-selection paste:** Middle-click once over an empty terminal prompt and confirm that the terminal follows the platform's normal behavior. Then use keyboard or browser-context-menu Paste to confirm that portable paste remains usable.
+- **Unique payload:** `P3_MIDDLE_NATIVE_7Q2`
+- **Expected result:** On Linux environments that provide primary-selection paste, one middle-click pastes one copy of the selected command and pressing Enter prints exactly one marker line. Platforms without that convention are not expected to paste on middle-click. The terminal bridge does not read the system clipboard, synthesize a paste, or suppress the browser's middle-button behavior.
+- **Failure condition:** One middle-click is suppressed, produces two insertions, combines primary-selection and system-clipboard contents, or leaves the terminal unusable. Lack of middle-click paste on a platform without primary-selection semantics is not a failure.
 
 ## 7. Reject unsolicited OSC 52 clipboard output
 

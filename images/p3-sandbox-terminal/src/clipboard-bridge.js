@@ -70,24 +70,6 @@
         }
     }
 
-    function pasteFromClipboard(term, doc, isActive) {
-        const clipboard = getClipboard(doc);
-        if (!clipboard || typeof clipboard.readText !== 'function') {
-            return false;
-        }
-        try {
-            Promise.resolve(clipboard.readText()).then(function(text) {
-                if (text && (!isActive || isActive())) {
-                    term.paste(text);
-                }
-            }).catch(function() {
-                // Permission denied: degrade silently to keyboard/browser paste.
-            });
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
 
     // Ctrl+Shift+C copies the active selection (VS Code / GNOME Terminal
     // muscle memory). Deliberately not Cmd+Shift+C: Safari opens devtools
@@ -280,22 +262,6 @@
             event.stopPropagation();
             writeClipboard(doc, selection);
         }
-        function handleMiddleMouseDown(event) {
-            if (event.button !== 1 || !targetsTerminal(event) || !pasteFromClipboard(term, doc, function() {
-                return !disposed && terminalInstallations.get(term) === dispose;
-            })) {
-                return;
-            }
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        function handleAuxClick(event) {
-            const clipboard = getClipboard(doc);
-            if (event.button === 1 && targetsTerminal(event) && clipboard && typeof clipboard.readText === 'function') {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-        }
 
         const oscDisposable = term.parser.registerOscHandler(52, handleOsc52);
         const selectionDisposable = term.onSelectionChange(handleSelectionChange);
@@ -309,8 +275,6 @@
             view.addEventListener('blur', cancelInteraction);
         }
         doc.addEventListener('keydown', handleKeyDown, true);
-        doc.addEventListener('mousedown', handleMiddleMouseDown, true);
-        doc.addEventListener('auxclick', handleAuxClick, true);
 
         function dispose() {
             if (disposed) {
@@ -328,8 +292,6 @@
                 view.removeEventListener('blur', cancelInteraction);
             }
             doc.removeEventListener('keydown', handleKeyDown, true);
-            doc.removeEventListener('mousedown', handleMiddleMouseDown, true);
-            doc.removeEventListener('auxclick', handleAuxClick, true);
             if (oscDisposable && typeof oscDisposable.dispose === 'function') {
                 oscDisposable.dispose();
             }

@@ -44,7 +44,7 @@ The container expects SSH credentials to be mounted at:
 2. **SSH Setup**: Configures SSH with provided keys and proper permissions
 3. **Terminal Session**: Starts ttyd with tmux session that auto-reconnects on failure
 4. **Scrollback Support**: Enables tmux mouse mode for scroll-wheel history browsing
-5. **Clipboard Support**: Provides a gesture-gated OSC 52 path for plain tmux mouse selections, supports native Shift+drag (Linux/Windows) or Option+drag (macOS), preserves the browser right-click menu, and supports browser-dependent middle-click paste
+5. **Clipboard Support**: Provides a gesture-gated OSC 52 path for plain tmux mouse selections, supports native Shift+drag (Linux/Windows) or Option+drag (macOS), and leaves right-click and middle-click to the browser
 6. **Persistent Sessions**: Uses tmux session named "remote" for connection persistence
 7. **Browser Shortcut Guard**: Uses a custom ttyd index to cancel browser-chrome shortcuts (`Ctrl`/`Cmd`+`S`, `F`, `P`, `U`, `F1`, and backspace outside editable controls) in capture phase while leaving xterm's normal key handling to forward them to the pty. ttyd's nested-frame leave alert is disabled; top-window close protection belongs to the embedding PCI.
 
@@ -54,9 +54,9 @@ Plain mouse drag selects through tmux. The Chromium-oriented path opens a 250 ms
 
 Shift+drag on Linux and Windows, or Option+drag on macOS, bypasses tmux for an xterm-native selection and copies directly when the drag ends. The bridge uses Pointer Events and pointer capture for primary mouse and pen input where supported, with mouse events as a compatibility fallback; touch does not authorize clipboard writes. Pointer capture normally preserves release handling outside the terminal element, but browsers cannot guarantee delivery after the pointer crosses into another document or iframe, so release across an iframe boundary may require an explicit keyboard or browser copy. Use `Ctrl+Shift+C` to copy an active native selection. On macOS, use `Cmd+C`; the terminal deliberately leaves `Cmd+Shift+C` untouched because browsers reserve it for developer tools. A copy shortcut with no selection continues to the terminal.
 
-Right-click is never intercepted, preserving the browser context menu and its paste fallback when Clipboard API access is unavailable or denied. Middle-click attempts a direct paste where the browser permits clipboard reads. `Ctrl+V` and `Cmd+V` retain their normal xterm behavior. The bridge ignores all OSC 52 clipboard-read queries and tmux right-click menus remain disabled so the browser menu can open.
+Right-click and middle-click are never intercepted. This preserves the browser context menu and leaves middle-button behavior to the browser and operating system: Linux environments may provide native primary-selection paste, while platforms without that convention may not paste on middle-click. Use keyboard paste or the browser context menu as the portable fallback. `Ctrl+V` and `Cmd+V` retain their normal xterm behavior. The bridge ignores all OSC 52 clipboard-read queries and tmux right-click menus remain disabled so the browser menu can open.
 
-Chromium embedders must delegate `clipboard-read; clipboard-write` to the terminal iframe for this path; the sandbox UI grants these permissions only to terminal tools. Firefox and Safari use different clipboard permission and transient-activation rules, so modified native selection plus explicit keyboard or browser copy/paste is the supported fallback there. Clipboard denial never prevents normal terminal use.
+Chromium embedders must delegate `clipboard-write` for bridge-managed copies. The sandbox UI delegates `clipboard-read; clipboard-write` only to terminal tools so browser and xterm paste paths can use clipboard access where supported; the bridge itself does not read the clipboard or synthesize paste. Firefox and Safari use different clipboard permission and transient-activation rules, so modified native selection plus explicit keyboard or browser copy/paste is the supported fallback there. Clipboard denial never prevents normal terminal use.
 
 ## Integration with Sandbox Operator
 

@@ -415,7 +415,7 @@ test('cancels stale drag and OSC state on blur, non-left release, and new down',
     assert.deepEqual(writes, []);
 });
 
-test('never consumes right-click and scopes middle-click paste to terminal', async () => {
+test('leaves right-click and middle-click to the browser', async () => {
     let reads = 0;
     const clipboard = {
         readText() { reads++; return Promise.resolve('paste'); },
@@ -432,48 +432,24 @@ test('never consumes right-click and scopes middle-click paste to terminal', asy
     document.dispatch('contextmenu', right);
     assert.equal(right.prevented, false);
     assert.equal(right.stopped, false);
-    assert.equal(reads, 0);
 
     const middle = pointerEvent(fixture.child, 1);
     document.dispatch('mousedown', middle);
+    document.dispatch('auxclick', middle);
     await flushPromises();
-    assert.equal(middle.prevented, true);
-    assert.equal(middle.stopped, true);
-    assert.deepEqual(fixture.pasted, ['paste']);
+    assert.equal(middle.prevented, false);
+    assert.equal(middle.stopped, false);
+    assert.equal(reads, 0);
+    assert.deepEqual(fixture.pasted, []);
 
     const outside = pointerEvent({}, 1);
     document.dispatch('mousedown', outside);
+    document.dispatch('auxclick', outside);
     assert.equal(outside.prevented, false);
-    assert.equal(reads, 1);
+    assert.equal(outside.stopped, false);
+    assert.equal(reads, 0);
 });
 
-test('drops clipboard reads that resolve after uninstall or reinstall', async () => {
-    const resolvers = [];
-    const clipboard = {
-        readText() { return new Promise(resolve => resolvers.push(resolve)); }
-    };
-    const { api, document } = loadBridge({ clipboard });
-    const fixture = terminalFixture();
-    installBridge(api, fixture, document);
-
-    document.dispatch('mousedown', pointerEvent(fixture.child, 1));
-    assert.equal(api.uninstallClipboardBridge(fixture.term), true);
-    resolvers.shift()('stale-uninstall');
-    await flushPromises();
-    assert.deepEqual(fixture.pasted, []);
-
-    installBridge(api, fixture, document);
-    document.dispatch('mousedown', pointerEvent(fixture.child, 1));
-    assert.equal(api.uninstallClipboardBridge(fixture.term), true);
-    installBridge(api, fixture, document);
-    resolvers.shift()('stale-reinstall');
-    await flushPromises();
-    assert.deepEqual(fixture.pasted, []);
-    document.dispatch('mousedown', pointerEvent(fixture.child, 1));
-    resolvers.shift()('current');
-    await flushPromises();
-    assert.deepEqual(fixture.pasted, ['current']);
-});
 
 test('releases captured pointers only on cancelled interactions', () => {
     const { api, document, window } = loadBridge();
@@ -508,11 +484,10 @@ test('releases captured pointers only on cancelled interactions', () => {
     assert.deepEqual(released, [11, 12, 14]);
 });
 
-test('contains synchronous clipboard API failures', () => {
+test('contains synchronous clipboard write failures', () => {
     const { api, document } = loadBridge({
         clipboard: {
-            writeText() { throw new Error('write denied'); },
-            readText() { throw new Error('read denied'); }
+            writeText() { throw new Error('write denied'); }
         }
     });
     const fixture = terminalFixture();
@@ -574,10 +549,8 @@ test('production deferral observes selection changes after mouseup', () => {
 
 test('disposes idempotently and permits a clean reinstall', async () => {
     const writes = [];
-    let reads = 0;
     const clipboard = {
-        writeText(text) { writes.push(text); return Promise.resolve(); },
-        readText() { reads++; return Promise.resolve('reinstalled'); }
+        writeText(text) { writes.push(text); return Promise.resolve(); }
     };
     const { api, document } = loadBridge({ clipboard });
     const fixture = terminalFixture();
@@ -591,7 +564,6 @@ test('disposes idempotently and permits a clean reinstall', async () => {
     assert.equal(fixture.selectionDisposals, 1);
     document.dispatch('mousedown', pointerEvent(fixture.child, 1));
     await flushPromises();
-    assert.equal(reads, 0);
     assert.deepEqual(fixture.pasted, []);
     assert.deepEqual(writes, []);
 
@@ -599,10 +571,11 @@ test('disposes idempotently and permits a clean reinstall', async () => {
     assert.equal(fixture.oscHandlers.length, 2);
     const middle = pointerEvent(fixture.child, 1);
     document.dispatch('mousedown', middle);
+    document.dispatch('auxclick', middle);
     await flushPromises();
-    assert.equal(reads, 1);
-    assert.deepEqual(fixture.pasted, ['reinstalled']);
-    assert.equal(middle.prevented, true);
+    assert.deepEqual(fixture.pasted, []);
+    assert.equal(middle.prevented, false);
+    assert.equal(middle.stopped, false);
 });
 
 test('waits until ttyd exposes an opened terminal element', () => {
