@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-terminal-v1.4.1] - 2026-07-10
+
+### 🐛 Bug Fixes
+
+- *(images/p3-sandbox-terminal)* Stopped synthesizing middle-click paste
+
 ## [p3-sandbox-terminal-v1.4.0] - 2026-07-10
 
 ### 🚀 Features
