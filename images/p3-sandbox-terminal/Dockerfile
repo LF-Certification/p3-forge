@@ -18,9 +18,10 @@ RUN apt-get update -y && \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
-# Create user directory for UID 1000
-RUN mkdir -p /home/user/.ssh && \
-    chown -R 1000:1000 /home/user
+# Create the runtime account required by OpenSSH's getpwuid lookup.
+RUN groupadd --gid 1000 user && \
+    useradd --uid 1000 --gid 1000 --home-dir /home/user --create-home --shell /bin/bash user && \
+    install -d -m 700 -o user -g user /home/user/.ssh
 
 # Configure tmux for the user:
 # - set-clipboard + Ms override: emit OSC 52 for mouse-drag copies so the
@@ -72,8 +73,8 @@ COPY --from=index-builder /work/index.html /usr/share/ttyd/index.html
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Switch to UID 1000 and set HOME
-USER 1000
+# Switch to the named runtime account.
+USER user
 ENV HOME=/home/user
 ENV SHELL=/bin/bash
 
