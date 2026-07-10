@@ -1,3 +1,9 @@
+function clipboardPermissionsAttributeFor(tool) {
+    return tool && tool.kind === 'terminal' ? 'allow="clipboard-read; clipboard-write"' : '';
+}
+
+window.P3SandboxUi = { clipboardPermissionsAttributeFor };
+
 document.addEventListener('DOMContentLoaded', function() {
     let config;
     let tools;
@@ -38,6 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <iframe src="${instructionsTool.url}"
                         title="${instructionsTool.name}"
                         class="w-100 border-0 h-100"
+                       ${clipboardPermissionsAttributeFor(instructionsTool)}
                         sandbox="allow-same-origin allow-scripts allow-popups allow-forms">
                 </iframe>
             `;
@@ -363,6 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <iframe src="${isDefault ? tool.url : 'about:blank'}"
                     title="${tool.name}"
                     class="w-100 border-0 h-100"
+                   ${clipboardPermissionsAttributeFor(tool)}
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms">
             </iframe>
         `;
