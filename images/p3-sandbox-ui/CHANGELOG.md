@@ -1,5 +1,12 @@
 # Changelog
 
+## [p3-sandbox-ui-v1.8.0] - 2026-07-10
+
+### 🚀 Features
+
+- *(images/p3-sandbox-ui)* Delegated clipboard access to terminal iframes
+- Added sandbox UI integration test tooling
+
 ## [p3-sandbox-ui-v1.7.1] - 2026-07-06
 
 ### 🐛 Bug Fixes
