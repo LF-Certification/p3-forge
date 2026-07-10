@@ -91,16 +91,13 @@ for (const path of [
     assert.equal(altCtrlF.prevented, false, `${path} should not cancel Alt+Ctrl+F`);
 }
 
-const terminalIndex = readFileSync('src/index.html', 'utf8');
-assert.match(terminalIndex, /P3BrowserShortcutGuard/, 'terminal custom index should inline the shortcut guard');
-assert.doesNotMatch(terminalIndex, /beforeunload/i, 'terminal custom index must not add nested-frame beforeunload handlers');
 
 const terminalEntrypoint = readFileSync('entrypoint.sh', 'utf8');
 assert.match(terminalEntrypoint, /ttyd -I \/usr\/share\/ttyd\/index\.html/, 'entrypoint should serve the custom ttyd index');
 assert.match(terminalEntrypoint, /-t disableLeaveAlert=true/, 'entrypoint should disable ttyd nested-frame leave alert');
 
 const terminalDockerfile = readFileSync('Dockerfile', 'utf8');
-assert.match(terminalDockerfile, /COPY src\/index\.html \/usr\/share\/ttyd\/index\.html/, 'terminal image should copy custom ttyd index');
+assert.match(terminalDockerfile, /inject-custom-scripts\.mjs/, 'terminal image should generate its custom ttyd index');
 
 const uiIndex = readFileSync('../p3-sandbox-ui/src/index.html', 'utf8');
 assert.match(uiIndex, /<script src="shortcut-guard\.js"><\/script>\s*<script src="app\.js"><\/script>/, 'sandbox-ui should load guard before app.js');
