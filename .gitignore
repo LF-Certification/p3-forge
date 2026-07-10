@@ -210,3 +210,4 @@ tags
 
 # claude
 .claude-todos/*
+.sandbox-ui-test-state

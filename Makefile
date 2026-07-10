@@ -127,6 +127,36 @@ list-dynamic-targets: ## List all dynamically generated targets
 		echo "  commit-graph-$$name"; \
 	done
 
+##@ Integration Tests
+
+export SANDBOX_UI_TEST_UI_PORT ?= 8091
+export SANDBOX_UI_TEST_INSTRUCTIONS_PORT ?= 7682
+export SANDBOX_UI_TEST_TERMINAL_PORT ?= 7685
+export SANDBOX_UI_TEST_EXPIRY ?= 2099-01-01T00:00:00Z
+export SANDBOX_UI_TEST_OPEN ?= 1
+export SANDBOX_UI_TEST_UI_IMAGE ?= p3-sandbox-ui-test/ui:local
+export SANDBOX_UI_TEST_TERMINAL_IMAGE ?= p3-sandbox-ui-test/terminal:local
+export SANDBOX_UI_TEST_GENERATOR_IMAGE ?= p3-sandbox-ui-test/instructions-generator:local
+export SANDBOX_UI_TEST_SERVER_IMAGE ?= p3-sandbox-ui-test/instructions-server:local
+export SANDBOX_UI_TEST_SSH_IMAGE ?= docker.io/linuxserver/openssh-server@sha256:edbbd662675be4f6a06c76c24f785adf68d7c69156152280842788e85d152a44
+export SANDBOX_UI_TEST_CHROME_IMAGE ?= docker.io/zenika/alpine-chrome@sha256:ee10e24217aa27443e6b58da628f3b09ea9b814459915b8b62fe15a555f9692a
+
+.PHONY: sandbox-ui-test sandbox-ui-test-up sandbox-ui-test-verify sandbox-ui-test-logs sandbox-ui-test-down
+sandbox-ui-test: ## Run the sandbox UI integration test
+	@./scripts/sandbox-ui-test.sh run
+
+sandbox-ui-test-up: ## Start the sandbox UI integration test
+	@./scripts/sandbox-ui-test.sh up
+
+sandbox-ui-test-verify: ## Verify the sandbox UI integration test
+	@./scripts/sandbox-ui-test.sh verify
+
+sandbox-ui-test-logs: ## Follow sandbox UI integration test logs
+	@./scripts/sandbox-ui-test.sh logs
+
+sandbox-ui-test-down: ## Stop the sandbox UI integration test
+	@./scripts/sandbox-ui-test.sh down
+
 %:
 	@:
 
