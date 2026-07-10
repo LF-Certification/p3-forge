@@ -1,5 +1,15 @@
 # Changelog
 
+## [p3-sandbox-terminal-v1.4.0] - 2026-07-10
+
+### 🚀 Features
+
+- Added clipboard bridging for terminal
+
+### 🐛 Bug Fixes
+
+- *(images/p3-sandbox-terminal)* Created a named runtime user
+
 ## [p3-sandbox-terminal-v1.3.3] - 2026-07-02
 
 ### 🐛 Bug Fixes
