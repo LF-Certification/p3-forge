@@ -1,7 +1,7 @@
 #!/usr/bin/env bashp
 set -ex
 
-curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="v${K8S_VERSION:?must be set}" sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v${K8S_VERSION:?must be set}+k3s1" sh -
 
 mkdir -p ~/.kube
 sudo -u tux mkdir -p ~tux/.kube
