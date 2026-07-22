@@ -25,6 +25,7 @@ case "$os" in
 		man-db \
 		nano \
 		sudo \
+		tree \
 		vim
 	apk add --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
 		tldr
@@ -46,6 +47,7 @@ case "$os" in
 		nano \
 		sudo \
 		tldr-py \
+		tree \
 		util-linux \
 		vim
 	;;
