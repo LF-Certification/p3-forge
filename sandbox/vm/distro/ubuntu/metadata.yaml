@@ -1,5 +1,5 @@
 type: base
 settings:
-  distro_version: [noble]
+  distro_version: [resolute]
   upstream_image: [quay.io/containerdisks/ubuntu]
-  upstream_image_tag: [24.04-2602140210]
+  upstream_image_tag: [26.04-2607290209]
