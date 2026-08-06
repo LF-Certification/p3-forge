@@ -14,6 +14,9 @@ A web-based IDE container built on code-server for sandbox environments.
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `LOCAL_WORKDIR` | Yes | Path to workspace directory |
+| `TARGET_HOST` | Yes | SSH host for the target VM |
+| `TARGET_USER` | Yes | SSH user for the target VM |
+| `REMOTE_WORKDIR` | Yes | Initial directory for terminals on the target VM |
 
 ## Configuration
 
@@ -30,17 +33,24 @@ The container includes:
 2. **Workspace Detection**: Waits for workspace directory to exist
 3. **Directory Listing**: Shows workspace contents for debugging
 4. **Code-Server Startup**: Starts VS Code server with the workspace
+5. **Integrated Terminals**: Opens the target VM user's login shell
 
 ## Volume Mounts
 
 Mount your workspace directory to the path specified by `LOCAL_WORKDIR`.
+
+Mount a dedicated directory containing only the sandbox SSH key and client config read-only at `/home/coder/.ssh`. Never mount your personal `~/.ssh`; the IDE would expose every key in it.
 
 ## Example Docker Run
 
 ```bash
 docker run -p 8080:8080 \
   -e LOCAL_WORKDIR=/workspace \
+  -e TARGET_HOST=vm1 \
+  -e TARGET_USER=candidate \
+  -e REMOTE_WORKDIR=/home/candidate \
   -v /path/to/your/code:/workspace \
+  -v /path/to/sandbox-ssh:/home/coder/.ssh:ro \
   p3-sandbox-ide
 ```
 
