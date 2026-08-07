@@ -1,6 +1,17 @@
 #!/usr/bin/env bashp
 set -ex
 
+install -d /etc/rancher/k3s
+cat >/etc/rancher/k3s/config.yaml <<'EOF'
+write-kubeconfig-mode: "0644"
+node-name: node
+disable-network-policy: true
+disable:
+  - traefik
+  - metrics-server
+  - servicelb
+EOF
+
 p3forge::k3s
 
 tekton_version="${TEKTON_VERSION:?must be set}"
