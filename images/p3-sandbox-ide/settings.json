@@ -4,5 +4,11 @@
     "**/*",
     "../.ide-refresh-marker"
   ],
-  "files.watcherExclude": {}
+  "files.watcherExclude": {},
+  "terminal.integrated.profiles.linux": {
+    "Sandbox VM": {
+      "path": "/usr/local/bin/p3-ide-remote-shell"
+    }
+  },
+  "terminal.integrated.defaultProfile.linux": "Sandbox VM"
 }
