@@ -12,7 +12,8 @@ sandbox/
     │   └── ubuntu/
     └── kubernetes/       # Kubernetes-ready images
         ├── k3s/          # Pre-built single-node k3s cluster
-        └── k8sn/         # Uninitialized Kubernetes node
+        ├── k8sn/         # Uninitialized Kubernetes node
+        └── tekton/       # K3s with Tekton Pipelines and tkn
 ```
 
 ## Image Categories
@@ -33,6 +34,7 @@ Images with Kubernetes components pre-installed.
 | Image   | Description                                                                         |
 |---------|--------------------------------------------------------------------------------------|
 | `k3s`   | Pre-built single-node k3s cluster                                                   |
+| `tekton` | K3s with Tekton Pipelines and the `tkn` CLI pre-installed                      |
 | `k8s`   | Pre-built single-node opinionated Kubernetes cluster (use `k8sn` for customization) |
 | `k8sn`  | Uninitialized Kubernetes node for multi-VM clusters (control plane or worker)       |
 | `k8scl` | Self-contained multi-node Kubernetes cluster                                        |

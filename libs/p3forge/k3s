@@ -1,0 +1,20 @@
+# shellcheck shell=bash
+
+function p3forge::k3s() {
+    local installer
+    installer="$(mktemp)"
+    curl -fsSL --retry 5 --retry-all-errors https://get.k3s.io --output "$installer"
+    INSTALL_K3S_VERSION="v${K8S_VERSION:?must be set}+k3s1" sh "$installer"
+    rm -f "$installer"
+
+    mkdir -p ~/.kube
+    sudo -u tux mkdir -p ~tux/.kube
+    for homedir in ~ ~tux; do
+        file::copy /etc/rancher/k3s/k3s.yaml "$homedir"/.kube/config
+    done
+    k8s::configure_shell
+
+    k8s::wait_for_all
+}
+
+# vim: syntax=bash
