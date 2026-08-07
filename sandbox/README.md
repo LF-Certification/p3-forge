@@ -61,6 +61,14 @@ For each distro variant:
 | `:k8s` | `:1.35` | Only for default distro |
 | `:latest` | `:latest` | Only for default distro |
 
+Tekton images add the Tekton version to their Kubernetes version tags:
+
+| Tag | Example | Condition |
+|-----|---------|-----------|
+| `:tekton-k8s` | `:1.9.0-k8s1.36.1` | Only for default distro |
+| `:tekton-k8s-distro_version` | `:1.9.0-k8s1.36.1-trixie` | Always |
+| `:tekton-k8s-distro_version-timestamp` | `:1.9.0-k8s1.36.1-trixie-20260807T1301` | Always (immutable) |
+
 ## Usage
 
 Reference images in your `sandbox.yaml`:
@@ -80,6 +88,16 @@ spec:
   virtualmachines:
     - name: cp
       baseImage: k8sn:1.35-noble
+      user: tux
+```
+
+Or for Tekton workloads:
+
+```yaml
+spec:
+  virtualmachines:
+    - name: node
+      baseImage: tekton:1.9.0-k8s1.36.1
       user: tux
 ```
 
