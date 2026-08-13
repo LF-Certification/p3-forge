@@ -60,6 +60,9 @@ wget -q "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${arc
 useradd --uid 60000 --create-home --shell /bin/bash --groups sudo tux || true
 passwd --delete tux
 
+# Grant tux passwordless sudo
+echo "%sudo   ALL=(ALL:ALL) NOPASSWD: ALL" >/etc/sudoers.d/90-nopasswd
+
 # Disable strict host key checking and create a shared SSH key so SSH commands work in scripts
 echo -e "StrictHostKeyChecking no\nUserKnownHostsFile /dev/null" > /etc/ssh/ssh_config.d/10-disable-stricthostkeychecking.conf
 cat <<EOF >~/.ssh/id_ed25519
