@@ -30,7 +30,10 @@ case "$os" in
 	apk add --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
 		tldr
 	;;
-	debian|ubuntu)
+	ubuntu)
+	p3forge::set_ubuntu_mirror
+	;&
+	debian)
 	export DEBIAN_FRONTEND=noninteractive
 	apt-get update
 	apt-get upgrade -y

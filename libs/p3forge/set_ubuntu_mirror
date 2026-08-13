@@ -1,0 +1,16 @@
+function p3forge::set_ubuntu_mirror() {
+local MIRROR="${1:-us-west-2.ec2.archive.ubuntu.com}"
+cat >/etc/apt/sources.list.d/ubuntu.sources <<EOF
+Types: deb
+URIs: http://${MIRROR}/ubuntu
+Suites: resolute resolute-updates resolute-backports
+Components: main universe restricted multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+Types: deb
+URIs: http://security.ubuntu.com/ubuntu
+Suites: resolute-security
+Components: main universe restricted multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+EOF
+}
