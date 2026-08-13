@@ -80,3 +80,5 @@ install -d /etc/bash_completion.d
 tkn completion bash >/etc/bash_completion.d/tkn
 
 tkn version
+
+p3forge::wipe_machine_id

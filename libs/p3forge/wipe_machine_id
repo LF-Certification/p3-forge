@@ -1,0 +1,5 @@
+# Wipe machine id so it gets regenerated on boot, preventing issues due to
+# identical machine ids
+function p3forge::wipe_machine_id() {
+	truncate -s 0 /etc/machine-id
+}

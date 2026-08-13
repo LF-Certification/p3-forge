@@ -81,6 +81,7 @@ echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMn/tmkXW8N/sXy/65mYakzS28AekdXisAvbub
 [ ! -f /etc/fuse.conf ] || sed -i 's/^#user_allow_other/user_allow_other/' /etc/fuse.conf
 
 cleanup::postbuild
+p3forge::wipe_machine_id
 }
 
 # vim: syntax=bash

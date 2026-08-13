@@ -2,3 +2,4 @@
 
 kubeVersion="$K8S_VERSION" kubeadm::prepare
 kubeadm::create_cluster
+p3forge::wipe_machine_id
