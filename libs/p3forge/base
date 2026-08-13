@@ -37,6 +37,19 @@ case "$os" in
 	export DEBIAN_FRONTEND=noninteractive
 	apt-get update
 	apt-get upgrade -y
+	# The systemd/udev upgrade can briefly drop the guest's default route;
+	# wait up to ~90s for the apt mirror to answer before fetching more.
+	echo "=== network state (before wait) ==="
+	ip route || true
+	journalctl --no-pager --since -3min -u systemd-networkd -u systemd-udevd || true
+	mirror="$(grep -rhoE 'https?://[^/[:space:]]+' /etc/apt/sources.list.d/ 2>/dev/null | sed -E 's#https?://##;/^security\./d' | head -1)"
+	for _ in $(seq 30); do
+		timeout 5 bash -c "exec 3<>/dev/tcp/${mirror:-deb.debian.org}/80" 2>/dev/null && break
+		sleep 3
+	done
+	echo "=== network state (after wait) ==="
+	ip route || true
+	journalctl --no-pager --since -3min -u systemd-networkd -u systemd-udevd || true
 	apt-get purge -y unattended-upgrades
 	apt-get install -y --no-install-recommends \
 		apt-transport-https \
