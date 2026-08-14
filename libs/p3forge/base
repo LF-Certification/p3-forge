@@ -36,50 +36,14 @@ case "$os" in
 	debian)
 	export DEBIAN_FRONTEND=noninteractive
 	apt-get update
-	# TEST: hold the systemd stack so its restart is skipped, to isolate
-	# whether that restart triggers the post-upgrade TCP black-hole.
-	apt-mark hold systemd udev systemd-resolved || true
 	apt-get upgrade -y
-	# Diagnostic: the guest's outbound TCP black-holes for ~100s post-upgrade
-	# (ARP/ICMP/DNS stay up). Probe many endpoints to see how wide it is.
-	echo "=== network state (before wait) ==="
-	ip route || true
-	journalctl --no-pager --since -3min -u systemd-networkd -u systemd-udevd || true
+	# The systemd/udev/resolved upgrade restarts networking, which black-holes
+	# the guest's outbound TCP for ~100s; wait for the apt mirror before install.
 	mirror="$(grep -rhoE 'https?://[^/[:space:]]+' /etc/apt/sources.list.d/ 2>/dev/null | sed -E 's#https?://##;/^security\./d' | head -1)"
-	mirror="${mirror:-deb.debian.org}"
-	for i in $(seq 30); do
-		echo "=== probe attempt $i ==="
-		gw="$(ip route | awk '/^default/{print $3; exit}')"
-		mirror_ip="$(getent hosts "$mirror" | awk '{print $1; exit}')"
-		ip neigh || true
-		ss -tan 2>/dev/null | grep -E 'SYN-SENT|ESTAB' || true
-		command -v resolvectl >/dev/null && resolvectl query "$mirror" 2>&1 | head -3 || true
-		for pt in "gw=${gw}" "mirror_ip=${mirror_ip}" "public1=1.1.1.1" "public2=8.8.8.8"; do
-			pn="${pt%%=*}"; ph="${pt#*=}"
-			[ -n "$ph" ] || { echo "ping SKIP $pn"; continue; }
-			if command -v ping >/dev/null && ping -c1 -W2 "$ph" >/dev/null 2>&1; then
-				echo "ping OK   $pn $ph"
-			else
-				echo "ping FAIL $pn $ph"
-			fi
-		done
-		mirror_up=
-		for t in "mirror=${mirror}:80" "mirror_ip=${mirror_ip}:80" "mirror443=${mirror}:443" "github=github.com:443" "public=1.1.1.1:53" "dns8=8.8.8.8:53"; do
-			name="${t%%=*}"; hp="${t#*=}"; h="${hp%:*}"; p="${hp##*:}"
-			[ -n "$h" ] || { echo "tcp SKIP $name (unresolved)"; continue; }
-			if timeout 5 bash -c "exec 3<>/dev/tcp/${h}/${p}" 2>/dev/null; then
-				echo "tcp OK   $name $h:$p"
-				[ "$name" = mirror ] && mirror_up=1
-			else
-				echo "tcp FAIL $name $h:$p"
-			fi
-		done
-		[ -n "$mirror_up" ] && break
+	for _ in $(seq 60); do
+		timeout 5 bash -c "exec 3<>/dev/tcp/${mirror:-deb.debian.org}/80" 2>/dev/null && break
 		sleep 3
 	done
-	echo "=== network state (after wait) ==="
-	ip route || true
-	journalctl --no-pager --since -3min -u systemd-networkd -u systemd-udevd || true
 	apt-get purge -y unattended-upgrades
 	apt-get install -y --no-install-recommends \
 		apt-transport-https \
