@@ -36,9 +36,12 @@ case "$os" in
 	debian)
 	export DEBIAN_FRONTEND=noninteractive
 	apt-get update
+	# TEST: hold the systemd stack so its restart is skipped, to isolate
+	# whether that restart triggers the post-upgrade TCP black-hole.
+	apt-mark hold systemd udev systemd-resolved || true
 	apt-get upgrade -y
-	# Egress to the apt mirror black-holes for ~90s after the systemd/udev
-	# upgrade (route stays up); probe several targets to localize the cause.
+	# Diagnostic: the guest's outbound TCP black-holes for ~100s post-upgrade
+	# (ARP/ICMP/DNS stay up). Probe many endpoints to see how wide it is.
 	echo "=== network state (before wait) ==="
 	ip route || true
 	journalctl --no-pager --since -3min -u systemd-networkd -u systemd-udevd || true
@@ -51,16 +54,24 @@ case "$os" in
 		ip neigh || true
 		ss -tan 2>/dev/null | grep -E 'SYN-SENT|ESTAB' || true
 		command -v resolvectl >/dev/null && resolvectl query "$mirror" 2>&1 | head -3 || true
-		command -v ping >/dev/null && ping -c1 -W2 "$gw" 2>&1 | tail -1 || true
+		for pt in "gw=${gw}" "mirror_ip=${mirror_ip}" "public1=1.1.1.1" "public2=8.8.8.8"; do
+			pn="${pt%%=*}"; ph="${pt#*=}"
+			[ -n "$ph" ] || { echo "ping SKIP $pn"; continue; }
+			if command -v ping >/dev/null && ping -c1 -W2 "$ph" >/dev/null 2>&1; then
+				echo "ping OK   $pn $ph"
+			else
+				echo "ping FAIL $pn $ph"
+			fi
+		done
 		mirror_up=
-		for t in "gw=${gw}:80" "mirror_ip=${mirror_ip}:80" "mirror=${mirror}:80" "public=1.1.1.1:53" "imds=169.254.169.254:80"; do
+		for t in "mirror=${mirror}:80" "mirror_ip=${mirror_ip}:80" "mirror443=${mirror}:443" "github=github.com:443" "public=1.1.1.1:53" "dns8=8.8.8.8:53"; do
 			name="${t%%=*}"; hp="${t#*=}"; h="${hp%:*}"; p="${hp##*:}"
-			[ -n "$h" ] || { echo "probe SKIP $name (unresolved)"; continue; }
+			[ -n "$h" ] || { echo "tcp SKIP $name (unresolved)"; continue; }
 			if timeout 5 bash -c "exec 3<>/dev/tcp/${h}/${p}" 2>/dev/null; then
-				echo "probe OK   $name $h:$p"
+				echo "tcp OK   $name $h:$p"
 				[ "$name" = mirror ] && mirror_up=1
 			else
-				echo "probe FAIL $name $h:$p"
+				echo "tcp FAIL $name $h:$p"
 			fi
 		done
 		[ -n "$mirror_up" ] && break
