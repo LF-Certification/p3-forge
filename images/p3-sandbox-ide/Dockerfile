@@ -1,4 +1,4 @@
-FROM codercom/code-server:4.22.0
+FROM codercom/code-server:4.132.0
 
 COPY --chown=1000:1000 settings.json /home/coder/.local/share/code-server/Machine/settings.json
 COPY code-server.yaml /etc/code-server.yaml
