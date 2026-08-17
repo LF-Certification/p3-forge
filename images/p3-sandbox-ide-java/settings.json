@@ -1,0 +1,26 @@
+{
+  "extensions.autoCheckUpdates": false,
+  "extensions.autoUpdate": false,
+  "telemetry.telemetryLevel": "off",
+  "redhat.telemetry.enabled": false,
+  "java.jdt.ls.java.home": "/opt/java/openjdk",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "/opt/java/openjdk",
+      "default": true
+    }
+  ],
+  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xms100m -Xmx2G -Xlog:disable",
+  "java.server.launchMode": "Standard",
+  "java.project.importOnFirstTimeStartup": "automatic",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.import.maven.enabled": true,
+  "java.import.maven.offline.enabled": true,
+  "java.import.gradle.enabled": false,
+  "java.maven.downloadSources": false,
+  "java.eclipse.downloadSources": false,
+  "java.maven.updateSnapshots": false,
+  "java.configuration.detectJdksAtStart": false,
+  "java.showBuildStatusOnStart.enabled": "notification"
+}
