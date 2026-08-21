@@ -1,7 +1,7 @@
 apiVersion: p3.ed.linuxfoundation.org/v1alpha1
 kind: SandboxBlueprint
 metadata:
-  name: bluefin-lts
+  name: centos-bootc
 spec:
   virtualmachines:
     - name: base
@@ -9,8 +9,8 @@ spec:
       user: root
       resources:
         requests:
-          memory: 6Gi
+          memory: 4Gi
           cpu: "2"
         limits:
-          memory: 8Gi
-          storage: 40Gi
+          memory: 6Gi
+          storage: 20Gi

@@ -1,6 +1,6 @@
 #!/usr/bin/env bashp
 
-bluefin_image="${BLUEFIN_IMAGE:?must be set}"
+centos_bootc_image="${CENTOS_BOOTC_IMAGE:?must be set}"
 install::apt_packages podman uidmap slirp4netns passt nftables
 
 # Non-interactive SSH sessions have no systemd user bus, so use cgroupfs for
@@ -58,8 +58,8 @@ PermitRootLogin prohibit-password
 EOF
 
 cat >"${build_context}/Containerfile" <<'EOF'
-ARG BLUEFIN_IMAGE
-FROM ${BLUEFIN_IMAGE}
+ARG CENTOS_BOOTC_IMAGE
+FROM ${CENTOS_BOOTC_IMAGE}
 
 RUN rpm -q openssh-server sudo && \
     dnf -y --setopt=install_weak_deps=False install cloud-init && \
@@ -102,25 +102,23 @@ RUN set -e; \
       "/usr/lib/modules/${kver}/initramfs.img" "${kver}"; \
     rm -rf /var/log/* /var/tmp/* /var/cache/ldconfig /tmp/* /run/*
 
-# Bluefin retains RPM-managed service accounts in /etc rather than declaring
-# every upstream account through sysusers. Keep every other warning fatal.
-RUN bootc container lint --fatal-warnings --skip sysusers
+RUN bootc container lint --fatal-warnings
 EOF
 
-podman pull "${bluefin_image}"
+podman pull "${centos_bootc_image}"
 podman build \
-  --build-arg "BLUEFIN_IMAGE=${bluefin_image}" \
-  --tag localhost/sandbox-bluefin-lts:source \
+  --build-arg "CENTOS_BOOTC_IMAGE=${centos_bootc_image}" \
+  --tag localhost/sandbox-centos-bootc:source \
   "${build_context}"
 
 # Replace the disposable builder OS on disk. The published p3-forge artifact
-# therefore boots Bluefin from its first consumer-visible start.
+# therefore boots CentOS bootc from its first consumer-visible start.
 podman run --rm --privileged --pid=host \
   -v /var/lib/containers:/var/lib/containers \
   -v /dev:/dev \
   -v /:/target \
   --security-opt label=type:unconfined_t \
-  localhost/sandbox-bluefin-lts:source \
+  localhost/sandbox-centos-bootc:source \
   bootc install to-existing-root \
     --acknowledge-destructive \
     --disable-selinux

@@ -1,6 +1,0 @@
-type: base
-settings:
-  distro_version: [stable-20260814]
-  upstream_image: [quay.io/containerdisks/debian]
-  upstream_image_tag: [13-2602110210]
-  bluefin_image: [ghcr.io/projectbluefin/bluefin-lts@sha256:727e3f36eede8eca74bdbf76a258743b9b05681c1216232ea5bc54388869efda]

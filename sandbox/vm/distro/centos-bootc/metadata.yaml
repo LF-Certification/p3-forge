@@ -1,0 +1,6 @@
+type: base
+settings:
+  distro_version: [stream10]
+  upstream_image: [quay.io/containerdisks/debian]
+  upstream_image_tag: [13-2602110210]
+  centos_bootc_image: [quay.io/centos-bootc/centos-bootc@sha256:2b7e3b1abf8db094d1efb083721dc0f72e6feeef2355fc16ea010d0266b2bb95]
