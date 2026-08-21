@@ -51,8 +51,28 @@ if [ -z "$CHANGED_FILES" ]; then
     exit 0
 fi
 
-# Extract unique image directories (top-level only)
-CHANGED_IMAGES=$(echo "$CHANGED_FILES" | sed 's|^images/\([^/]*\)/.*|images/\1|; s|^images/\([^/]*\)$|images/\1|' | grep "^images/" | sort -u)
+# Extract unique image directories (top-level only), excluding image roots
+# deleted by the change under inspection.
+CHANGED_IMAGES=$(
+    echo "$CHANGED_FILES" |
+        sed 's|^images/\([^/]*\)/.*|images/\1|; s|^images/\([^/]*\)$|images/\1|' |
+        grep "^images/" |
+        sort -u |
+        while read -r image; do
+            if [ -f "$image/Dockerfile" ]; then
+                echo "$image"
+            fi
+        done
+)
+
+if [ -z "$CHANGED_IMAGES" ]; then
+    if [ "$OUTPUT_FORMAT" = "json" ]; then
+        echo '{"has_changes": false, "changed_images": []}'
+    else
+        echo "No buildable image changes detected in images/"
+    fi
+    exit 0
+fi
 
 if [ "$OUTPUT_FORMAT" = "json" ]; then
     # Output JSON format for CI consumption

@@ -82,12 +82,12 @@ echo "  SHA: $SHORT_SHA"
 echo ""
 
 # Build the image with multiple tags
-TAGS="--tag $DEV_TAG --tag $BRANCH_LATEST_TAG"
+TAGS=(--tag "$DEV_TAG" --tag "$BRANCH_LATEST_TAG")
 
 # Add dev-latest tag only for main branch
 if [ "$BRANCH_NAME" = "main" ]; then
     DEV_LATEST_TAG="${FULL_IMAGE_NAME}:dev-latest"
-    TAGS="$TAGS --tag $DEV_LATEST_TAG"
+    TAGS+=(--tag "$DEV_LATEST_TAG")
     echo "  Tags: dev-${BRANCH_NAME}-${SHORT_SHA}, dev-${BRANCH_NAME}-latest, dev-latest"
 else
     echo "  Tags: dev-${BRANCH_NAME}-${SHORT_SHA}, dev-${BRANCH_NAME}-latest"
@@ -102,20 +102,39 @@ if [ -n "$REPO_URL" ]; then
     REPO_URL=$(echo "$REPO_URL" | sed 's|git@github.com:|https://github.com/|' | sed 's|\.git$||')
 fi
 
-# Build the image
-docker build $TAGS \
-    --label "org.opencontainers.image.source=${REPO_URL}" \
-    --label "org.opencontainers.image.revision=$(git rev-parse HEAD)" \
-    --label "org.opencontainers.image.created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-    --label "org.opencontainers.image.description=Dev build of ${IMAGE_NAME} from ${BRANCH_NAME}" \
-    --label "org.opencontainers.image.licenses=Proprietary" \
-    --label "dev.lf-certification.image.path=$IMAGE_PATH" \
-    --label "dev.lf-certification.build.branch=$BRANCH_NAME" \
-    "$IMAGE_PATH"
+LABELS=(
+    --label "org.opencontainers.image.source=${REPO_URL}"
+    --label "org.opencontainers.image.revision=$(git rev-parse HEAD)"
+    --label "org.opencontainers.image.created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    --label "org.opencontainers.image.description=Dev build of ${IMAGE_NAME} from ${BRANCH_NAME}"
+    --label "org.opencontainers.image.licenses=Proprietary"
+    --label "dev.lf-certification.image.path=$IMAGE_PATH"
+    --label "dev.lf-certification.build.branch=$BRANCH_NAME"
+)
+
+BUILD_COMMAND=(docker build)
+if [ "$IMAGE_NAME" = "p3-sandbox-ide" ]; then
+    BUILD_COMMAND+=(--target base)
+fi
+
+"${BUILD_COMMAND[@]}" "${TAGS[@]}" "${LABELS[@]}" "$IMAGE_PATH"
+
+if [ "$IMAGE_NAME" = "p3-sandbox-ide" ]; then
+    JAVA_DEV_TAG="${DEV_TAG}-java"
+    JAVA_BRANCH_LATEST_TAG="${BRANCH_LATEST_TAG}-java"
+    JAVA_TAGS=(--tag "$JAVA_DEV_TAG" --tag "$JAVA_BRANCH_LATEST_TAG")
+    if [ "$BRANCH_NAME" = "main" ]; then
+        JAVA_DEV_LATEST_TAG="${DEV_LATEST_TAG}-java"
+        JAVA_TAGS+=(--tag "$JAVA_DEV_LATEST_TAG")
+    fi
+
+    echo ""
+    echo "Building Java variant..."
+    docker build --target java "${JAVA_TAGS[@]}" "${LABELS[@]}" "$IMAGE_PATH"
+fi
 
 echo "✅ Build complete!"
 
-# Push if requested
 if [ "$PUSH_IMAGE" = true ]; then
     echo ""
     echo "Pushing to registry..."
@@ -126,6 +145,14 @@ if [ "$PUSH_IMAGE" = true ]; then
         docker push "$DEV_LATEST_TAG"
     fi
 
+    if [ "$IMAGE_NAME" = "p3-sandbox-ide" ]; then
+        docker push "$JAVA_DEV_TAG"
+        docker push "$JAVA_BRANCH_LATEST_TAG"
+        if [ "$BRANCH_NAME" = "main" ]; then
+            docker push "$JAVA_DEV_LATEST_TAG"
+        fi
+    fi
+
     echo "✅ Push complete!"
     echo ""
     echo "Published tags:"
@@ -133,5 +160,12 @@ if [ "$PUSH_IMAGE" = true ]; then
     echo "  $BRANCH_LATEST_TAG"
     if [ "$BRANCH_NAME" = "main" ]; then
         echo "  $DEV_LATEST_TAG"
+    fi
+    if [ "$IMAGE_NAME" = "p3-sandbox-ide" ]; then
+        echo "  $JAVA_DEV_TAG"
+        echo "  $JAVA_BRANCH_LATEST_TAG"
+        if [ "$BRANCH_NAME" = "main" ]; then
+            echo "  $JAVA_DEV_LATEST_TAG"
+        fi
     fi
 fi

@@ -148,11 +148,28 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
+      - name: Generate Java variant metadata
+        id: java-meta
+        if: needs.parse-tag.outputs.image-name == 'p3-sandbox-ide'
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ needs.parse-tag.outputs.image-name }}
+          tags: |
+            type=raw,value=${{ needs.parse-tag.outputs.version }}-java
+            type=raw,value=v${{ needs.parse-tag.outputs.major }}.${{ needs.parse-tag.outputs.minor }}-java
+            type=raw,value=v${{ needs.parse-tag.outputs.major }}-java
+          labels: |
+            org.opencontainers.image.title=${{ needs.parse-tag.outputs.image-name }}
+            org.opencontainers.image.version=${{ needs.parse-tag.outputs.version }}-java
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
       - name: Build and push container image
         uses: docker/build-push-action@v5
         with:
           context: ${{ needs.parse-tag.outputs.image-path }}
           file: ${{ needs.parse-tag.outputs.image-path }}/Dockerfile
+          target: ${{ needs.parse-tag.outputs.image-name == 'p3-sandbox-ide' && 'base' || '' }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -161,8 +178,27 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: false
 
+      - name: Build and push Java variant
+        if: needs.parse-tag.outputs.image-name == 'p3-sandbox-ide'
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ needs.parse-tag.outputs.image-path }}
+          file: ${{ needs.parse-tag.outputs.image-path }}/Dockerfile
+          target: java
+          push: true
+          tags: ${{ steps.java-meta.outputs.tags }}
+          labels: ${{ steps.java-meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
       - name: Output build summary
         run: |
+          DOCKER_TAGS="${{ steps.meta.outputs.tags }}"
+          if [[ -n "${{ steps.java-meta.outputs.tags }}" ]]; then
+            DOCKER_TAGS+=$'\n${{ steps.java-meta.outputs.tags }}'
+          fi
           devbox run -- make ci-build-summary \
             IMAGE_NAME="${{ needs.parse-tag.outputs.image-name }}" \
             IMAGE_PATH="${{ needs.parse-tag.outputs.image-path }}" \
@@ -170,5 +206,5 @@ jobs:
             GIT_TAG="${{ github.ref_name }}" \
             GIT_SHA="${{ github.sha }}" \
             IS_LATEST_MAJOR="${{ needs.check-latest-version.outputs.is-latest-major }}" \
-            DOCKER_TAGS="${{ steps.meta.outputs.tags }}" \
+            DOCKER_TAGS="$DOCKER_TAGS" \
             DOCKER_LABELS="${{ steps.meta.outputs.labels }}"
