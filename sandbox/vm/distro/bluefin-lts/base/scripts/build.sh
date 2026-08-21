@@ -60,7 +60,8 @@ cat >"${build_context}/Containerfile" <<'EOF'
 ARG BLUEFIN_IMAGE
 FROM ${BLUEFIN_IMAGE}
 
-RUN dnf -y install cloud-init openssh-server qemu-guest-agent sudo && \
+RUN rpm -q openssh-server sudo && \
+    dnf -y --setopt=install_weak_deps=False install cloud-init && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
@@ -71,7 +72,7 @@ COPY 90-sandbox-sudoers /etc/sudoers.d/90-sandbox
 COPY 40-sandbox-sshd.conf /etc/ssh/sshd_config.d/40-sandbox.conf
 
 RUN chmod 0440 /etc/sudoers.d/90-sandbox && \
-    systemctl enable sshd.service qemu-guest-agent.service && \
+    systemctl enable sshd.service && \
     systemctl enable cloud-init-local.service cloud-config.service cloud-final.service && \
     if systemctl cat cloud-init-network.service >/dev/null 2>&1; then \
       systemctl enable cloud-init-network.service; \
