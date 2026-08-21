@@ -112,12 +112,12 @@ LABELS=(
     --label "dev.lf-certification.build.branch=$BRANCH_NAME"
 )
 
-TARGET=()
+BUILD_COMMAND=(docker build)
 if [ "$IMAGE_NAME" = "p3-sandbox-ide" ]; then
-    TARGET=(--target base)
+    BUILD_COMMAND+=(--target base)
 fi
 
-docker build "${TARGET[@]}" "${TAGS[@]}" "${LABELS[@]}" "$IMAGE_PATH"
+"${BUILD_COMMAND[@]}" "${TAGS[@]}" "${LABELS[@]}" "$IMAGE_PATH"
 
 if [ "$IMAGE_NAME" = "p3-sandbox-ide" ]; then
     JAVA_DEV_TAG="${DEV_TAG}-java"
