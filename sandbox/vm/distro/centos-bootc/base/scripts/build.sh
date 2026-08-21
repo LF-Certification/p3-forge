@@ -65,7 +65,7 @@ RUN rpm -q openssh-server sudo && \
     dnf -y --setopt=install_weak_deps=False install cloud-init && \
     dnf clean all && \
     rm -rf /var/cache/dnf /var/cache/ldconfig /var/lib/dnf /var/lib/cloud \
-      /var/roothome/buildinfo /var/log/* /run/* /tmp/*
+      /var/lib/rhsm /var/roothome/buildinfo /var/log/* /run/* /tmp/*
 
 COPY --chmod=0755 yq /usr/bin/yq
 COPY 50-sandbox-sysusers.conf /usr/lib/sysusers.d/50-sandbox.conf
