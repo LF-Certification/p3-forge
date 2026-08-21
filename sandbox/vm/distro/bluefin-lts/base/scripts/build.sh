@@ -63,7 +63,8 @@ FROM ${BLUEFIN_IMAGE}
 RUN rpm -q openssh-server sudo && \
     dnf -y --setopt=install_weak_deps=False install cloud-init && \
     dnf clean all && \
-    rm -rf /var/cache/dnf
+    rm -rf /var/cache/dnf /var/lib/dnf /var/lib/cloud \
+      /var/log/* /run/* /tmp/*
 
 COPY --chmod=0755 yq /usr/bin/yq
 COPY 50-sandbox-sysusers.conf /usr/lib/sysusers.d/50-sandbox.conf
@@ -81,7 +82,9 @@ RUN chmod 0440 /etc/sudoers.d/90-sandbox && \
     fi && \
     systemctl set-default multi-user.target
 
-RUN bootc container lint --fatal-warnings
+# Bluefin retains RPM-managed service accounts in /etc rather than declaring
+# every upstream account through sysusers. Keep every other warning fatal.
+RUN bootc container lint --fatal-warnings --skip sysusers
 EOF
 
 podman pull "${bluefin_image}"
