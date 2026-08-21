@@ -107,14 +107,45 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
+      - name: Generate Java variant metadata
+        id: java-meta
+        if: steps.extract.outputs.image-name == 'p3-sandbox-ide'
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ steps.extract.outputs.image-name }}
+          tags: |
+            type=ref,event=branch,prefix=dev-,suffix=-latest-java
+            type=sha,prefix=dev-{{branch}}-,suffix=-java
+            type=raw,value=dev-latest-java,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=${{ steps.extract.outputs.image-name }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
       - name: Build and push container image
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.image-path }}
           file: ${{ matrix.image-path }}/Dockerfile
+          target: ${{ steps.extract.outputs.image-name == 'p3-sandbox-ide' && 'base' || '' }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Build and push Java variant
+        if: steps.extract.outputs.image-name == 'p3-sandbox-ide'
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.image-path }}
+          file: ${{ matrix.image-path }}/Dockerfile
+          target: java
+          push: true
+          tags: ${{ steps.java-meta.outputs.tags }}
+          labels: ${{ steps.java-meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -132,4 +163,7 @@ jobs:
           echo "### 📦 Published Tags:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n' >> $GITHUB_STEP_SUMMARY
+          if [[ -n "${{ steps.java-meta.outputs.tags }}" ]]; then
+            echo "${{ steps.java-meta.outputs.tags }}" | tr ',' '\n' >> $GITHUB_STEP_SUMMARY
+          fi
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

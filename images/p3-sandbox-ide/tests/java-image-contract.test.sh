@@ -1,11 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-image=${IMAGE:-p3-sandbox-ide-java:dev}
+image=${IMAGE:-p3-sandbox-ide:dev-java}
+base_image=${BASE_IMAGE:-p3-sandbox-ide:dev}
+
+base_extensions=$(docker run --rm --entrypoint code-server "$base_image" \
+  --list-extensions --show-versions)
+if printf '%s\n' "$base_extensions" | grep -F 'redhat.java@' >/dev/null; then
+  printf 'base image unexpectedly contains redhat.java\n' >&2
+  exit 1
+fi
+
+if docker run --rm --entrypoint test "$base_image" -x /opt/java/openjdk/bin/java; then
+  printf 'base image unexpectedly contains the Java runtime\n' >&2
+  exit 1
+fi
 
 version=$(docker run --rm --entrypoint code-server "$image" --version)
 case "$version" in
-  "4.22.0 "*" with Code 1.87.0") ;;
+  "4.132.0 "*) ;;
   *)
     printf 'unexpected code-server host: %s\n' "$version" >&2
     exit 1
