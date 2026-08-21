@@ -86,10 +86,21 @@ RUN visudo -cf /etc/sudoers.d/90-sandbox && \
 
 # Sandbox contract for image-mode guests: /sandbox survives bootc switch via
 # /var, and the build tooling's root-level write probes land on a discardable
-# overlay while /etc and /var stay persistent.
-RUN ln -s /var/sandbox /sandbox && \
-    ! grep -q '^\[root\]' /usr/lib/ostree/prepare-root.conf && \
-    printf '\n[root]\ntransient = true\n' >>/usr/lib/ostree/prepare-root.conf
+# overlay while /etc and /var stay persistent. ostree-prepare-root reads the
+# config from the initramfs, not the deployment, so regenerate the initrd
+# after editing it (verified: ostree 2026.2 ignores a layer-only edit).
+RUN set -e; \
+    ln -s /var/sandbox /sandbox; \
+    ! grep -q '^\[root\]' /usr/lib/ostree/prepare-root.conf; \
+    printf '\n[root]\ntransient = true\n' >>/usr/lib/ostree/prepare-root.conf; \
+    kver=""; \
+    for dir in /usr/lib/modules/*/; do \
+      if [ -f "${dir}initramfs.img" ]; then kver="$(basename "${dir}")"; fi; \
+    done; \
+    test -n "${kver}"; \
+    dracut --force --no-hostonly --reproducible \
+      "/usr/lib/modules/${kver}/initramfs.img" "${kver}"; \
+    rm -rf /var/log/* /var/tmp/* /var/cache/ldconfig /tmp/* /run/*
 
 # Bluefin retains RPM-managed service accounts in /etc rather than declaring
 # every upstream account through sysusers. Keep every other warning fatal.
