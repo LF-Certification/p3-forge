@@ -1,0 +1,16 @@
+apiVersion: p3.ed.linuxfoundation.org/v1alpha1
+kind: SandboxBlueprint
+metadata:
+  name: bluefin-lts
+spec:
+  virtualmachines:
+    - name: base
+      baseImage: "{upstream_image}:{upstream_image_tag}"
+      user: root
+      resources:
+        requests:
+          memory: 6Gi
+          cpu: "2"
+        limits:
+          memory: 8Gi
+          storage: 40Gi
