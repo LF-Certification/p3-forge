@@ -44,10 +44,11 @@ EOF
 
 cat >"${build_context}/50-sandbox-tmpfiles.conf" <<'EOF'
 d /var/home/tux 0700 tux tux -
+d /var/sandbox 0755 root root -
 EOF
 
 cat >"${build_context}/90-sandbox-sudoers" <<'EOF'
-__omp_magic("sudo", "ALL=(ALL:ALL) NOPASSWD: ALL")
+%sudo ALL=(ALL:ALL) NOPASSWD: ALL
 EOF
 
 cat >"${build_context}/40-sandbox-sshd.conf" <<'EOF'
@@ -72,7 +73,8 @@ COPY 50-sandbox-tmpfiles.conf /usr/lib/tmpfiles.d/50-sandbox.conf
 COPY 90-sandbox-sudoers /etc/sudoers.d/90-sandbox
 COPY 40-sandbox-sshd.conf /etc/ssh/sshd_config.d/40-sandbox.conf
 
-RUN chmod 0440 /etc/sudoers.d/90-sandbox && \
+RUN visudo -cf /etc/sudoers.d/90-sandbox && \
+    chmod 0440 /etc/sudoers.d/90-sandbox && \
     systemctl enable sshd.service && \
     systemctl enable cloud-init-local.service cloud-config.service cloud-final.service && \
     if systemctl cat cloud-init-network.service >/dev/null 2>&1; then \
@@ -81,6 +83,13 @@ RUN chmod 0440 /etc/sudoers.d/90-sandbox && \
       systemctl enable cloud-init.service; \
     fi && \
     systemctl set-default multi-user.target
+
+# Sandbox contract for image-mode guests: /sandbox survives bootc switch via
+# /var, and the build tooling's root-level write probes land on a discardable
+# overlay while /etc and /var stay persistent.
+RUN ln -s /var/sandbox /sandbox && \
+    ! grep -q '^\[root\]' /usr/lib/ostree/prepare-root.conf && \
+    printf '\n[root]\ntransient = true\n' >>/usr/lib/ostree/prepare-root.conf
 
 # Bluefin retains RPM-managed service accounts in /etc rather than declaring
 # every upstream account through sysusers. Keep every other warning fatal.
