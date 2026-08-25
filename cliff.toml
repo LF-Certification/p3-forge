@@ -81,6 +81,9 @@ commit_parsers = [
     { message = "^chore\\(changelog\\): update .*/CHANGELOG.md$", skip = true},
     { message = "^chore\\(release\\): release", skip = true},
     { message = "^chore\\(release\\): prepare for", skip = true },
+    # Older releases were committed as `chore(<image-path>): released vX.Y.Z`
+    # before the current `chore(release):` convention.
+    { message = "^chore(\\([^)]+\\))?: released", skip = true },
     { message = "^chore\\(deps.*\\)", skip = true },
     { message = "^chore\\(pr\\)", skip = true },
     { message = "^chore\\(pull\\)", skip = true },

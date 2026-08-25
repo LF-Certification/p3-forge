@@ -12,10 +12,6 @@
 
 - *(images/p3-sandbox-ide)* Routed terminal sessions to the sandbox VM (#11)
 
-### ⚙️ Miscellaneous Tasks
-
-- *(images/p3-sandbox-ide)* Released v1.3.0
-
 ## [p3-sandbox-ide-v1.2.0] - 2025-08-14
 
 ### 🚀 Features
