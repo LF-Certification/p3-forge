@@ -5,6 +5,20 @@ Notes for AI coding agents (and humans) working in this repo.
 This repo holds the source files for the container images used with the P3
 Sandbox Operator. Each image is versioned and released on its own.
 
+## This repo is public
+
+Everything committed here is readable by anyone, including this file. Keep out
+employer or client details, internal hostnames and URLs, cloud account or
+cluster identifiers, ticket contents, customer data, and credentials.
+
+Take extra care when you arrive from one of the private repos — carrying a
+snippet across is the easy way to leak something. Move only what the image
+itself needs, and rewrite it in general terms.
+
+The images are published too, so a Dockerfile or script that bakes in a secret
+or an internal endpoint hands it to anyone who pulls the image, not just to
+anyone who reads the repo.
+
 ## Releasing an image
 
 Read `VERSIONING.md` before cutting a release. Releases go through
