@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-sshfs-init-v1.0.0] - 2026-08-25
+
+### 🚀 Features
+
+- [**breaking**] Java LSP flavored IDE (#12)
+
 ## [p3-sandbox-sshfs-init-v0.3.0] - 2025-08-14
 
 ### 🚀 Features
