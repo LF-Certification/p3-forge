@@ -45,21 +45,27 @@ case "$os" in
 		sleep 3
 	done
 	apt-get purge -y unattended-upgrades
-	apt-get install -y --no-install-recommends \
-		apt-transport-https \
-		bash-completion \
-		ca-certificates \
-		cloud-init \
-		curl \
-		gpg \
-		less \
-		man-db \
-		nano \
-		sudo \
-		tldr-py \
-		tree \
-		util-linux \
-		vim
+	# The mirror can stay unreachable for a while after the probe succeeds;
+	# retry the install instead of failing the whole image build.
+	for attempt in $(seq 5); do
+		apt-get install -y --no-install-recommends \
+			apt-transport-https \
+			bash-completion \
+			ca-certificates \
+			cloud-init \
+			curl \
+			gpg \
+			less \
+			man-db \
+			nano \
+			sudo \
+			tldr-py \
+			tree \
+			util-linux \
+			vim && break
+		[[ $attempt -lt 5 ]] || exit 1
+		sleep 15
+	done
 	;;
 esac
 
