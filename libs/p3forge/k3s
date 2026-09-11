@@ -7,6 +7,13 @@ function p3forge::k3s() {
     INSTALL_K3S_VERSION="v${K8S_VERSION:?must be set}+k3s1" sh "$installer"
     rm -f "$installer"
 
+    if ! timeout 120 bash -c \
+        'until [[ -s /etc/rancher/k3s/k3s.yaml ]]; do sleep 1; done'; then
+        systemctl status k3s --no-pager || true
+        journalctl -u k3s --no-pager -n 200 || true
+        return 1
+    fi
+
     mkdir -p ~/.kube
     sudo -u tux mkdir -p ~tux/.kube
     for homedir in ~ ~tux; do
@@ -14,7 +21,20 @@ function p3forge::k3s() {
     done
     k8s::configure_shell
 
-    k8s::wait_for_all
+    k8s::wait_for_cluster
+    k8s::wait_for_nodes
+
+    local deadline=$((SECONDS + 300))
+    until kubectl wait --for=condition=ready pod --all -A \
+        --field-selector status.phase!=Succeeded --timeout=10s; do
+        if ((SECONDS >= deadline)); then
+            kubectl get pods -A -o wide || true
+            kubectl get events -A --sort-by=.lastTimestamp || true
+            kubectl describe pods -A || true
+            return 1
+        fi
+        sleep 5
+    done
 }
 
 # vim: syntax=bash
