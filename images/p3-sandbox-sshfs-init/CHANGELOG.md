@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-sshfs-init-v1.0.1] - 2026-10-06
+
+### 🐛 Bug Fixes
+
+- Run as uid 1000 on containerd
+
 ## [p3-sandbox-sshfs-init-v1.0.0] - 2026-08-25
 
 ### 🚀 Features
