@@ -74,7 +74,7 @@ while [ $retry_count -lt $MAX_RETRIES ]; do
            -o BatchMode=yes \
            -i "$SSH_KEY_PATH" \
            "$TARGET_USER@$TARGET_HOST" \
-           "echo 'SSH connection successful'" 2>/dev/null; then
+           "echo 'SSH connection successful'"; then
         echo "SSH connection established successfully"
         break
     else
@@ -109,7 +109,7 @@ if ! ssh -o ConnectTimeout=10 \
              -o BatchMode=yes \
              -i "$SSH_KEY_PATH" \
              "$TARGET_USER@$TARGET_HOST" \
-             "mkdir -p '$REMOTE_WORKDIR'" 2>/dev/null; then
+             "mkdir -p '$REMOTE_WORKDIR'"; then
         echo "ERROR: Failed to create remote directory $REMOTE_WORKDIR"
         exit 1
     fi
@@ -207,7 +207,7 @@ while true; do
                -o BatchMode=yes \
                -i "$SSH_KEY_PATH" \
                "$TARGET_USER@$TARGET_HOST" \
-               "echo 'SSH connection check'" 2>/dev/null; then
+               "echo 'SSH connection check'"; then
             echo "Remote host $TARGET_HOST is no longer reachable, exiting gracefully"
             exit 0
         fi
@@ -216,7 +216,7 @@ while true; do
         # Attempt to remount
         if "${sshfs_cmd[@]}" \
            "$TARGET_USER@$TARGET_HOST:$REMOTE_WORKDIR" \
-           "$MOUNT_POINT" 2>/dev/null; then
+           "$MOUNT_POINT"; then
             echo "SSHFS remount successful"
         else
             echo "SSHFS remount failed, will retry..."
