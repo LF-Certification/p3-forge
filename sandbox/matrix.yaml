@@ -1,0 +1,10 @@
+vm:
+  debian:
+    - k3s
+    - k8s
+    - k8sn
+    - tekton
+  ubuntu:
+    - k3s
+    - k8s
+    - k8sn

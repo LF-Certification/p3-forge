@@ -6,6 +6,7 @@ This directory contains base images for P3 sandbox VMs, built using the sandbox 
 
 ```
 sandbox/
+├── matrix.yaml           # Image combinations built by CI
 └── vm/
     ├── distro/           # Base distribution images
     │   ├── debian/
@@ -22,22 +23,30 @@ sandbox/
 
 Base distribution images with common customizations for lab/exam environments. These are the foundation for all other images.
 
-| Image | Description |
-|-------|-------------|
-| `ubuntu` | Ubuntu LTS with base customizations |
+| Image    | Description                            |
+|----------|----------------------------------------|
+| `ubuntu` | Ubuntu LTS with base customizations    |
 | `debian` | Debian stable with base customizations |
 
 ### Kubernetes Images (`sandbox/vm/kubernetes/`)
 
 Images with Kubernetes components pre-installed.
 
-| Image   | Description                                                                         |
-|---------|--------------------------------------------------------------------------------------|
-| `k3s`   | Pre-built single-node k3s cluster                                                   |
-| `tekton` | K3s with Tekton Pipelines and the `tkn` CLI pre-installed                      |
-| `k8s`   | Pre-built single-node opinionated Kubernetes cluster (use `k8sn` for customization) |
-| `k8sn`  | Uninitialized Kubernetes node for multi-VM clusters (control plane or worker)       |
-| `k8scl` | Self-contained multi-node Kubernetes cluster                                        |
+| Image    | Description                                                                         |
+|----------|-------------------------------------------------------------------------------------|
+| `k3s`    | Pre-built single-node k3s cluster                                                   |
+| `tekton` | K3s with Tekton Pipelines and the `tkn` CLI pre-installed                           |
+| `k8s`    | Pre-built single-node opinionated Kubernetes cluster (use `k8sn` for customization) |
+| `k8sn`   | Uninitialized Kubernetes node for multi-VM clusters (control plane or worker)       |
+| `k8scl`  | Self-contained multi-node Kubernetes cluster                                        |
+
+## Build Matrix (`sandbox/matrix.yaml`)
+
+> **WIP:** CI does not consume this matrix yet.
+
+`matrix.yaml` defines which distro and Kubernetes image combinations CI builds. Keys under `vm` match directories under `sandbox/vm/distro/`, and each list entry matches a directory under `sandbox/vm/kubernetes/`. An empty list means that CI builds only the distro image.
+
+Every distro image and listed Kubernetes combination is built for both `amd64` and `arm64`.
 
 ## Tagging Scheme
 
@@ -115,7 +124,7 @@ SANDBOX_SETTING_DISTRO=ubuntu sandbox build sandbox/vm/kubernetes/k8sn
 
 Images are automatically built and published when changes are pushed to `sandbox/**` on the main branch:
 
-1. Changed distros are built first
-2. Kubernetes images are rebuilt for all distros (if any distro changed, or if the kubernetes config changed)
+1. Changed distros are built first.
+2. Kubernetes images are rebuilt only for the distro and image combinations listed in `sandbox/matrix.yaml`.
 
-See `.github/workflows/sandbox-build.yml` for details.
+The p3-forge workflow in `.github/workflows/dispatch-sandbox-vm-build.yml` dispatches the build to the `p3forge-build.yml` workflow in sandbox-building-service.
