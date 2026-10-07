@@ -9,6 +9,7 @@ sandbox/
 ├── matrix.yaml           # Image combinations built by CI
 └── vm/
     ├── distro/           # Base distribution images
+    │   ├── centos-bootc/
     │   ├── debian/
     │   └── ubuntu/
     └── kubernetes/       # Kubernetes-ready images
@@ -23,10 +24,11 @@ sandbox/
 
 Base distribution images with common customizations for lab/exam environments. These are the foundation for all other images.
 
-| Image    | Description                            |
-|----------|----------------------------------------|
-| `ubuntu` | Ubuntu LTS with base customizations    |
-| `debian` | Debian stable with base customizations |
+| Image          | Description                                       |
+|----------------|---------------------------------------------------|
+| `debian`       | Debian stable with base customizations            |
+| `ubuntu`       | Ubuntu LTS with base customizations               |
+| `centos-bootc` | CentOS Stream bootc host with sandbox integration |
 
 ### Kubernetes Images (`sandbox/vm/kubernetes/`)
 

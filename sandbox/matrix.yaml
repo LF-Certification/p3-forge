@@ -1,4 +1,5 @@
 vm:
+  centos-bootc: []
   debian:
     - k3s
     - k8s

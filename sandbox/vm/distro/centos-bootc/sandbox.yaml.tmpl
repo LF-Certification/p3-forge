@@ -1,0 +1,19 @@
+apiVersion: p3.ed.linuxfoundation.org/v1alpha1
+kind: SandboxBlueprint
+metadata:
+  name: centos-bootc
+spec:
+  virtualmachines:
+    - name: base
+      baseImage: "{upstream_image}:{upstream_image_tag}"
+      user: root
+      resources:
+        requests:
+          memory: 4Gi
+          cpu: "2"
+        build:
+          cpu: "8"
+          memory: 8Gi
+        limits:
+          memory: 6Gi
+          storage: 20Gi
