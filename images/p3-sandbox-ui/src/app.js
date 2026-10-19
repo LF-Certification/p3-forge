@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     title="${tool.name}"
                     class="w-100 border-0 h-100"
                    ${clipboardPermissionsAttributeFor(tool)}
-                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms">
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-pointer-lock">
             </iframe>
         `;
         tabContent.appendChild(tabPane);
