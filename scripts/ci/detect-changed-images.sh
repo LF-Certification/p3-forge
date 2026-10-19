@@ -4,7 +4,7 @@ set -euo pipefail
 # Detect which images have changed compared to a base reference
 # Usage: ./scripts/detect-changed-images.sh [BASE_REF] [--json]
 
-BASE_REF="${1:-origin/main}"
+BASE_REF="origin/main"
 OUTPUT_FORMAT="text"
 
 # Parse arguments
@@ -12,7 +12,6 @@ for arg in "$@"; do
     case $arg in
         --json)
             OUTPUT_FORMAT="json"
-            shift
             ;;
         --help|-h)
             echo "Usage: $0 [BASE_REF] [--json]"
@@ -26,6 +25,9 @@ for arg in "$@"; do
             echo "Environment variables:"
             echo "  GITHUB_EVENT_BEFORE  Use this as BASE_REF if set (CI mode)"
             exit 0
+            ;;
+        *)
+            BASE_REF="$arg"
             ;;
     esac
 done
