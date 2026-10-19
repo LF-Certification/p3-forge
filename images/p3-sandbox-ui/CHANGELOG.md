@@ -1,5 +1,12 @@
 # Changelog
 
+## [p3-sandbox-ui-v1.8.1] - 2026-10-19
+
+### 🐛 Bug Fixes
+
+- *(images/p3-sandbox-terminal)* Stopped synthesizing middle-click paste
+- *(images/p3-sandbox-ui)* Allowed pointer lock in tool iframes (#13)
+
 ## [p3-sandbox-ui-v1.8.0] - 2026-07-10
 
 ### 🚀 Features
