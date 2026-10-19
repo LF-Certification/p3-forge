@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-browser-v1.0.1] - 2026-10-19
+
+### 🐛 Bug Fixes
+
+- Patched KasmVNC to reconnect dropped WebSockets (#14)
+
 ## [p3-sandbox-browser-v1.0.0] - 2025-07-26
 
 ### 🚀 Features
