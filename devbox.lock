@@ -53,6 +53,10 @@
       "last_modified": "2025-07-15T16:15:05Z",
       "resolved": "github:NixOS/nixpkgs/dab3a6e781554f965bde3def0aa2fda4eb8f1708?lastModified=1752596105&narHash=sha256-lFNVsu%2FmHLq3q11MuGkMhUUoSXEdQjCHvpReaGP1S2k%3D"
     },
+    "https://get-sandbox.lf-education.org/cli/v1.34.0/flake.tar.gz": {
+      "last_modified": "2026-10-27T17:21:17Z",
+      "resolved": "tarball+https://get-sandbox.lf-education.org/cli/v1.34.0/flake.tar.gz?lastModified=1793121677&narHash=sha256-RgKN764sThK8EyllkUfPNo%2FtchVSA04%2FZ9zDNH5dKZs%3D"
+    },
     "pre-commit@latest": {
       "last_modified": "2025-07-13T22:45:35Z",
       "resolved": "github:NixOS/nixpkgs/a421ac6595024edcfbb1ef950a3712b89161c359#pre-commit",
