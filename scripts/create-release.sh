@@ -1,8 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-# Create a release for the given image and update the changelog
-# Usage: ./scripts/create-release.sh [--dry-run] <image-path>
+# Create a release for the given path and update its changelog.
+# Usage: ./scripts/create-release.sh [--dry-run] <path>
+#
+# Tag form depends on the path:
+#   images/<name>  -> <name>-vX.Y.Z      (container image; see VERSIONING.md)
+#   <other path>   -> <path>/vX.Y.Z      (Go module, e.g. cli/lfed/v0.1.0)
+# The second form is what `go get module@vX.Y.Z` needs for a nested module.
+# A first release has no tag to bump from; it uses $INITIAL_VERSION (default 0.1.0).
 
 # Parse arguments
 DRY_RUN=false
@@ -36,10 +42,24 @@ if [ -z "$IMAGE_PATH" ]; then
     echo "Example: $0 --dry-run images/ui"
     exit 1
 fi
-TAG_PREFIX=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/|-|g')
-IMAGE_NAME=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/.*||')
+NEXT_VERSION=""
+case "$IMAGE_PATH" in
+    images/*)
+        TAG_PREFIX="$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/|-|g')-v"
+        IMAGE_NAME=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/.*||')
+        ;;
+    *)
+        TAG_PREFIX="${IMAGE_PATH%/}/v"
+        IMAGE_NAME=$(basename "$IMAGE_PATH")
+        if [ -z "$(git tag -l "${TAG_PREFIX}*")" ]; then
+            NEXT_VERSION="${TAG_PREFIX}${INITIAL_VERSION:-0.1.0}"
+        fi
+        ;;
+esac
 export IMAGE_NAME
-NEXT_VERSION=$(git cliff --bumped-version --include-path "$IMAGE_PATH/**" --tag-pattern "$TAG_PREFIX-v*")
+if [ -z "$NEXT_VERSION" ]; then
+    NEXT_VERSION=$(git cliff --bumped-version --include-path "$IMAGE_PATH/**" --tag-pattern "${TAG_PREFIX}*")
+fi
 if [ -z "$NEXT_VERSION" ]; then
     echo "No changes detected for $IMAGE_PATH since last release"
     exit 1

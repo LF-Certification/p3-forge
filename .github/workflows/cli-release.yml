@@ -1,0 +1,83 @@
+name: CLI release
+
+# `make release cli/lfed` creates the tag. Pushing it runs this workflow,
+# which builds the lfed archives and publishes them as a GitHub Release.
+on:
+  push:
+    tags:
+      - "cli/lfed/v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli/lfed
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.13.0
+        with:
+          enable-cache: "true"
+          devbox-version: "0.18.4"
+          project-path: cli/lfed
+
+      - name: Cache Go modules and build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: lfed-go-${{ hashFiles('cli/lfed/go.sum') }}
+          restore-keys: lfed-go-
+
+      - name: Lint
+        run: devbox run -- make lint
+
+      - name: Test
+        run: devbox run -- make test
+
+      - name: Derive version
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#cli/lfed/v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # GoReleaser reads the version from a `vX.Y.Z` tag on HEAD. The real
+      # tag is namespaced, so a local tag supplies the version. The local
+      # tag is never pushed.
+      - name: Tag HEAD for GoReleaser
+        run: |
+          git tag -d "v${{ steps.version.outputs.version }}" 2>/dev/null || true
+          git tag "v${{ steps.version.outputs.version }}"
+
+      - name: Build archives
+        run: devbox run -- goreleaser release --clean
+        env:
+          GORELEASER_CURRENT_TAG: v${{ steps.version.outputs.version }}
+
+      - name: Extract release notes
+        run: |
+          awk -v v="${GITHUB_REF_NAME}" '
+            $0 ~ "^## \\[" v "\\]" { on=1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > "${RUNNER_TEMP}/notes.md"
+          test -s "${RUNNER_TEMP}/notes.md" || { echo "no CHANGELOG section for ${GITHUB_REF_NAME}"; exit 1; }
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: lfed v${{ steps.version.outputs.version }}
+          body_path: ${{ runner.temp }}/notes.md
+          files: |
+            cli/lfed/dist/*.tar.gz
+            cli/lfed/dist/checksums.txt
+          fail_on_unmatched_files: true
