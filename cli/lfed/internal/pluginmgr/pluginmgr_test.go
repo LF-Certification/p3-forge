@@ -155,7 +155,7 @@ func TestInstalled(t *testing.T) {
 
 func installHello(t *testing.T, f *cmdutil.Factory) Installed {
 	t.Helper()
-	p, err := Install(context.Background(), f, filepath.Join("testdata", "helloplugin"))
+	p, err := Install(context.Background(), f, "./testdata/helloplugin", Options{})
 	if err != nil {
 		t.Fatalf("Install: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestInstallRejectsIncompatibleHost(t *testing.T) {
 	var out, errOut bytes.Buffer
 	f := testFactory(t, &out, &errOut)
 	f.Version = "5.0.0"
-	_, err := Install(context.Background(), f, filepath.Join("testdata", "helloplugin"))
+	_, err := Install(context.Background(), f, "./testdata/helloplugin", Options{})
 	var incompatible *IncompatibleError
 	if !errors.As(err, &incompatible) {
 		t.Fatalf("err = %v, want *IncompatibleError", err)
@@ -259,7 +259,7 @@ func TestExec(t *testing.T) {
 		t.Errorf("ExitCode = %d, want 3", ExitCode(err))
 	}
 
-	// Run checks requires_ep before executing.
+	// Run checks requires_lfed before executing.
 	f.Version = "9.0.0"
 	err = Run(context.Background(), f, "hello", nil)
 	if ExitCode(err) != 2 {

@@ -19,7 +19,7 @@ func writeFake(t *testing.T, dir, name, version, summary string) {
 	writeFakeRequiring(t, dir, name, version, summary, ">=0.1.0 <1")
 }
 
-// writeFakeRequiring writes a plugin whose manifest pins requires_ep.
+// writeFakeRequiring writes a plugin whose manifest pins requires_lfed.
 func writeFakeRequiring(t *testing.T, dir, name, version, summary, requires string) {
 	t.Helper()
 	pdir := filepath.Join(dir, name)
@@ -57,7 +57,7 @@ func run(t *testing.T, outputFlag string, args ...string) string {
 func TestListEmpty(t *testing.T) {
 	t.Setenv("LFED_PLUGIN_DIR", t.TempDir())
 	got := run(t, "table", "list")
-	if strings.TrimSpace(got) != "NAME  VERSION  STATUS  SUMMARY" {
+	if strings.TrimSpace(got) != "NAME  VERSION  STATUS  SOURCE  SUMMARY" {
 		t.Errorf("table = %q", got)
 	}
 	got = run(t, "json", "list")

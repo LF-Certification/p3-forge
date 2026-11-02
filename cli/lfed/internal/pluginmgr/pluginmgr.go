@@ -26,10 +26,20 @@ const ManifestFile = "lfed-plugin.json"
 // Installed is one plugin found in the plugin directory.
 type Installed struct {
 	Manifest sdkplugin.Manifest
+	// Source is where the plugin came from. Zero for installs that predate
+	// source tracking.
+	Source Source
 	// Dir is the plugin directory: <plugins>/<name>.
 	Dir string
 	// Binary is the executable path: <plugins>/<name>/lfed-<name>.
 	Binary string
+}
+
+// record is the on-disk shape of lfed-plugin.json: the manifest the plugin
+// printed plus the source the lfed CLI installed it from.
+type record struct {
+	sdkplugin.Manifest
+	Source Source `json:"source"`
 }
 
 // NotFoundError reports a word that is neither a core command nor an
@@ -47,7 +57,7 @@ func (e *NotFoundError) Error() string {
 	return fmt.Sprintf("unknown command %q for \"lfed\"; run \"lfed plugin list\"", e.Name)
 }
 
-// IncompatibleError reports a plugin whose requires_ep range excludes the
+// IncompatibleError reports a plugin whose requires_lfed range excludes the
 // running lfed CLI. the lfed CLI exits 2.
 type IncompatibleError struct {
 	Name     string
@@ -138,21 +148,21 @@ func load(dir, name string) (Installed, error) {
 	if err != nil {
 		return Installed{}, err
 	}
-	var m sdkplugin.Manifest
-	if err := json.Unmarshal(data, &m); err != nil {
+	var r record
+	if err := json.Unmarshal(data, &r); err != nil {
 		return Installed{}, fmt.Errorf("parse %s: %w", filepath.Join(pdir, ManifestFile), err)
 	}
-	return Installed{Manifest: m, Dir: pdir, Binary: filepath.Join(pdir, BinaryName(name))}, nil
+	return Installed{Manifest: r.Manifest, Source: r.Source, Dir: pdir, Binary: filepath.Join(pdir, BinaryName(name))}, nil
 }
 
 // CheckLfedVersion verifies that the running lfed version satisfies the
-// requires_ep range. A pre-release tag such as 0.1.0-dev is ignored so development
+// requires_lfed range. A pre-release tag such as 0.1.0-dev is ignored so development
 // builds pass release ranges. Failure yields *IncompatibleError; the name
 // is filled by the caller when it is known.
 func CheckLfedVersion(requires, running string) error {
 	c, err := semver.NewConstraint(requires)
 	if err != nil {
-		return fmt.Errorf("invalid requires_ep %q: %w", requires, err)
+		return fmt.Errorf("invalid requires_lfed %q: %w", requires, err)
 	}
 	v, err := semver.NewVersion(running)
 	if err != nil {

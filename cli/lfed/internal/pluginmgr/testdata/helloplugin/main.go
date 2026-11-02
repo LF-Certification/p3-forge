@@ -16,7 +16,7 @@ const manifest = `{
   "name": "hello",
   "version": "0.0.1",
   "summary": "Test plugin for pluginmgr",
-  "requires_ep": ">=0.1.0 <1",
+  "requires_lfed": ">=0.1.0 <1",
   "commands": [{"path": ["greet"], "summary": "Print the environment"}]
 }
 `

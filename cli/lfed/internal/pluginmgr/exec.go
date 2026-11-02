@@ -36,7 +36,8 @@ func ExitCode(err error) int {
 	}
 	var notFound *NotFoundError
 	var incompatible *IncompatibleError
-	if errors.As(err, &notFound) || errors.As(err, &incompatible) {
+	var noRelease *NoReleaseError
+	if errors.As(err, &notFound) || errors.As(err, &incompatible) || errors.As(err, &noRelease) {
 		return 2
 	}
 	return 1
@@ -57,7 +58,7 @@ func Env(lfedVersion string, ctx contexts.Context, token string, mode output.Mod
 	}
 }
 
-// Run looks up name, checks requires_ep and executes the plugin with
+// Run looks up name, checks requires_lfed and executes the plugin with
 // args. It is the unknown-command path of the root command.
 func Run(ctx context.Context, f *cmdutil.Factory, name string, args []string) error {
 	p, err := Lookup(name)

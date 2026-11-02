@@ -15,7 +15,7 @@ type Manifest struct {
 	// Summary is one line shown by `lfed help` and `lfed plugin list`.
 	Summary string `json:"summary"`
 	// RequiresLfed is a semver range such as ">=0.1.0 <1".
-	RequiresLfed string `json:"requires_ep"`
+	RequiresLfed string `json:"requires_lfed"`
 	// Commands lists leaf commands for help output.
 	Commands []Command `json:"commands"`
 	Hidden   bool      `json:"hidden,omitempty"`

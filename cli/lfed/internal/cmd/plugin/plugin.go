@@ -16,39 +16,62 @@ import (
 func NewCmd(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "plugin",
-		Short: "Install, list and remove plugins",
+		Short: "Install, list, upgrade and remove plugins",
 	}
-	cmd.AddCommand(newInstallCmd(f), newListCmd(f), newRemoveCmd(f))
+	cmd.AddCommand(newInstallCmd(f), newListCmd(f), newUpgradeCmd(f), newRemoveCmd(f))
 	return cmd
 }
 
 func newInstallCmd(f *cmdutil.Factory) *cobra.Command {
 	return &cobra.Command{
-		Use:   "install <path>",
-		Short: "Install a plugin from a binary or a Go main package directory",
-		Long: `Install a plugin from a local path.
+		Use:   "install <name>[@<version>] | <registry>/<repository>[:<version>] | ./<path>",
+		Short: "Install a plugin from the plugin registry or a local path",
+		Long: `Install a plugin.
 
-<path> is an executable file, or a directory holding a Go main package
-directly or under cmd/lfed-*. A directory is built with "go build". The
-the lfed CLI runs "<binary> __metadata", validates the manifest and stores both
-under the plugin directory. An existing plugin of the same name is
-replaced.`,
+A bare <name> resolves to ` + pluginmgr.DefaultRegistry + `/<name> and
+installs the highest version that supports this lfed. <name>@<version>
+pins a version. A full OCI reference works for any registry. Set
+LFED_PLUGIN_REGISTRY to change the default registry.
+
+A local path MUST start with ./, ../, / or ~/. It is an executable file,
+or a directory holding a Go main package directly or under cmd/lfed-*;
+a directory is built with "go build".
+
+The lfed CLI runs "<binary> __metadata", validates the manifest and stores
+the binary, the manifest and the source under the plugin directory. An
+existing plugin of the same name is replaced.
+
+ghcr.io credentials come from the Docker config, GITHUB_TOKEN, GH_TOKEN,
+or "gh auth token". The token needs the read:packages scope:
+"gh auth refresh -s read:packages".`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := pluginmgr.Install(cmd.Context(), f, args[0])
+			p, err := pluginmgr.Install(cmd.Context(), f, args[0], pluginmgr.Options{Reserved: reservedNames(cmd.Root())})
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(f.IOStreams.Out, "installed %s %s to %s\n", p.Manifest.Name, p.Manifest.Version, p.Dir)
+			fmt.Fprintf(f.IOStreams.Out, "installed %s %s from %s\n", p.Manifest.Name, p.Manifest.Version, p.Source)
 			return nil
 		},
 	}
 }
 
-// listRow is one `plugin list` entry: the manifest plus the compatibility check.
+// reservedNames are the core command words plus the ones Cobra adds at
+// Execute time. A plugin with one of these names is unreachable.
+func reservedNames(root *cobra.Command) []string {
+	names := []string{"help", "completion"}
+	for _, c := range root.Commands() {
+		names = append(names, c.Name())
+	}
+	return names
+}
+
+// listRow is one `plugin list` entry: the manifest, its source and the
+// compatibility check.
 type listRow struct {
 	sdkplugin.Manifest
-	// Compatible is false when requires_ep rejects this lfed version.
+	Source pluginmgr.Source `json:"source"`
+	// Compatible is false when requires_lfed rejects this lfed version.
 	Compatible bool `json:"compatible"`
 }
 
@@ -77,6 +100,7 @@ func newListCmd(f *cmdutil.Factory) *cobra.Command {
 			for _, p := range installed {
 				rows = append(rows, listRow{
 					Manifest:   p.Manifest,
+					Source:     p.Source,
 					Compatible: pluginmgr.CheckLfedVersion(p.Manifest.RequiresLfed, f.Version) == nil,
 				})
 			}
@@ -84,6 +108,7 @@ func newListCmd(f *cmdutil.Factory) *cobra.Command {
 				{Header: "name", Value: func(r listRow) string { return r.Name }},
 				{Header: "version", Value: func(r listRow) string { return r.Version }},
 				{Header: "status", Value: listRow.status},
+				{Header: "source", Value: func(r listRow) string { return r.Source.String() }},
 				{Header: "summary", Value: func(r listRow) string { return r.Summary }},
 			})
 		},
@@ -106,6 +131,48 @@ func newRemoveCmd(f *cmdutil.Factory) *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func newUpgradeCmd(f *cmdutil.Factory) *cobra.Command {
+	var dryRun bool
+	cmd := &cobra.Command{
+		Use:   "upgrade [name...]",
+		Short: "Upgrade installed plugins to the newest version this lfed supports",
+		Long: `Upgrade installed plugins.
+
+Each plugin installed from the registry is re-resolved against the
+repository recorded at install time, and replaced when a newer version
+supports this lfed. Plugins installed from a local path are listed and
+left alone. With no names, every installed plugin is checked.`,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return Names(), cobra.ShellCompDirectiveNoFileComp
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			mode, err := f.Output()
+			if err != nil {
+				return err
+			}
+			results, err := pluginmgr.Upgrade(cmd.Context(), f, args, dryRun, pluginmgr.Options{Reserved: reservedNames(cmd.Root())})
+			if err != nil {
+				return err
+			}
+			return output.Print(f.IOStreams.Out, mode, results, []output.Column[pluginmgr.UpgradeResult]{
+				{Header: "name", Value: func(r pluginmgr.UpgradeResult) string { return r.Name }},
+				{Header: "from", Value: func(r pluginmgr.UpgradeResult) string { return r.From }},
+				{Header: "to", Value: func(r pluginmgr.UpgradeResult) string { return r.To }},
+				{Header: "result", Value: upgradeResult},
+			})
+		},
+	}
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Resolve versions without installing")
+	return cmd
+}
+
+func upgradeResult(r pluginmgr.UpgradeResult) string {
+	if r.Upgraded {
+		return "upgraded"
+	}
+	return r.Note
 }
 
 // Names returns "name\tsummary" completions for installed plugins. Hidden
