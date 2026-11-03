@@ -48,6 +48,11 @@ The container expects SSH credentials to be mounted at:
 6. **Persistent Sessions**: Uses tmux session named "remote" for connection persistence
 7. **Browser Shortcut Guard**: Uses a custom ttyd index to cancel browser-chrome shortcuts (`Ctrl`/`Cmd`+`S`, `F`, `P`, `U`, `F1`, and backspace outside editable controls) in capture phase while leaving xterm's normal key handling to forward them to the pty. ttyd's nested-frame leave alert is disabled; top-window close protection belongs to the embedding PCI.
 
+SSH uses `LogLevel=ERROR` to suppress informational messages, including the
+first-connection known-host notice. ERROR/FATAL diagnostics and the reconnect
+status messages remain visible. This does not change authentication or the
+existing host-key policy.
+
 ## Clipboard behavior
 
 Plain mouse drag selects through tmux. The Chromium-oriented path opens a 250 ms, one-use window for tmux's OSC 52 response after a completed drag. Unsolicited, replayed, or late OSC 52 writes cannot write the clipboard; a malformed response also cannot write and consumes the window. This sharply limits remote clipboard writes but cannot eliminate a malicious remote process racing the legitimate response during that brief window.

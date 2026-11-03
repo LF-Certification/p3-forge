@@ -45,7 +45,7 @@ if [ -d ~/.ssh ]; then
     echo "  SSH directory file permissions: $(ls -al ~/.ssh)"
 fi
 
-SSH_OPTS="-o StrictHostKeyChecking=accept-new -o BatchMode=yes -o UserKnownHostsFile=/dev/null -t"
+SSH_OPTS="-o LogLevel=ERROR -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o UserKnownHostsFile=/dev/null -t"
 SSH_COMMAND="ssh $SSH_OPTS ${TARGET_USER}@${TARGET_HOST}"
 
 echo "Starting ttyd with auto-reconnecting SSH session..."
