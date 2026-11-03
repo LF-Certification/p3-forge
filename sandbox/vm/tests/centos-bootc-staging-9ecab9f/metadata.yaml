@@ -1,0 +1,3 @@
+type: lab
+settings:
+  centos_bootc_image: ["ghcr.io/lf-certification/centos-bootc@sha256:9e1c4936ea5477e67282bd613407ef623700ef0952af443e32f7995365107405"]

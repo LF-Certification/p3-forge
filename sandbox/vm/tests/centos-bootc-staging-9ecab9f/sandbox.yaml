@@ -1,0 +1,32 @@
+apiVersion: p3.ed.linuxfoundation.org/v1alpha1
+kind: SandboxBlueprint
+metadata:
+  name: centos-bootc-staging-9ecab9f
+spec:
+  ttlSeconds: 3600
+  virtualmachines:
+    - name: base
+      baseImage: quay.io/containerdisks/debian:13-2602110210
+      user: tux
+      ports:
+        - "22"
+      resources:
+        requests:
+          memory: 4Gi
+          cpu: "2"
+        build:
+          cpu: "8"
+          memory: 8Gi
+        limits:
+          memory: 6Gi
+          storage: 20Gi
+  tools:
+    - name: base
+      terminal:
+        version: v1
+        targetHost: base
+        targetUser: tux
+  ui:
+    version: v1
+    defaultTool: base
+    showTimer: true
