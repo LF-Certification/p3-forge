@@ -1,5 +1,17 @@
 # Changelog
 
+## [centos-bootc-v0.1.1] - 2026-11-03
+
+### 🐛 Bug Fixes
+
+- *(images/centos-bootc)* Fetched matching kernel-devel from Koji (#17)
+- Suppress sandbox user login messages
+- Allocate subordinate IDs for rootless Podman
+
+### 🎨 Styling
+
+- Reformatted 2 files
+
 ## [centos-bootc-v0.1.0] - 2026-10-07
 
 ### 🚀 Features
