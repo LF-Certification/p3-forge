@@ -2,17 +2,29 @@ ARG CENTOS_BOOTC_IMAGE=quay.io/centos-bootc/centos-bootc@sha256:f1f9f8029edbd7de
 FROM ${CENTOS_BOOTC_IMAGE} AS module-builder
 
 ARG TARGETARCH
+# CentOS Stream repositories keep only recent kernel-devel builds. Fetch the
+# build matching the base image kernel from the CentOS Koji archive, and update
+# kernelDevelSha256 whenever CENTOS_BOOTC_IMAGE changes.
 RUN set -eux; \
     targetArch="${TARGETARCH:-$(uname -m)}"; \
     case "${targetArch}" in \
-      amd64|x86_64) yqArch=amd64; yqSha256=8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f ;; \
-      arm64|aarch64) yqArch=arm64; yqSha256=189088da0c6429ec5178dfaab1a114805f6cab0b61b165ab236efedf1d57a71b ;; \
+      amd64|x86_64) yqArch=amd64; yqSha256=8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f; \
+        kernelDevelSha256=12ef51dd7d7f5cb0e0afd635027880b28d4373ab57d3526a1de0ce35719bc5d0 ;; \
+      arm64|aarch64) yqArch=arm64; yqSha256=189088da0c6429ec5178dfaab1a114805f6cab0b61b165ab236efedf1d57a71b; \
+        kernelDevelSha256=b8c80a89c92eb67a9dbca4b9a379c9f433985696c8b42b109faf65f7bc6f2636 ;; \
       *) echo "unsupported architecture: ${targetArch}" >&2; exit 1 ;; \
     esac; \
     kver="$(find /usr/lib/modules -mindepth 1 -maxdepth 1 -type d -printf '%f\n')"; \
     test -n "${kver}"; \
+    kernelRelease="${kver#*-}"; \
+    kernelRelease="${kernelRelease%.*}"; \
+    kernelDevelRpm="/tmp/kernel-devel-${kver}.rpm"; \
+    curl --fail --location --silent --show-error \
+      "https://kojihub.stream.centos.org/kojifiles/packages/kernel/${kver%%-*}/${kernelRelease}/data/signed/8483c65d/${kver##*.}/kernel-devel-${kver}.rpm" \
+      --output "${kernelDevelRpm}"; \
+    printf '%s  %s\n' "${kernelDevelSha256}" "${kernelDevelRpm}" | sha256sum --check; \
     dnf -y --setopt=install_weak_deps=False install \
-      curl elfutils-libelf-devel gcc gzip "kernel-devel-${kver}" make tar; \
+      curl elfutils-libelf-devel gcc gzip "${kernelDevelRpm}" make tar; \
     commit=6b07db58401b293c1748b127e445ef3c536f8d27; \
     curl --fail --location --silent --show-error \
       "https://gitlab.com/redhat/centos-stream/src/kernel/centos-stream-10/-/archive/${commit}/centos-stream-10-${commit}.tar.gz" \
@@ -41,7 +53,7 @@ RUN set -eux; \
       --output /out/usr/bin/yq; \
     printf '%s  %s\n' "${yqSha256}" /out/usr/bin/yq | sha256sum --check; \
     chmod 0755 /out/usr/bin/yq; \
-    rm -rf "${src}" /tmp/kernel.tar.gz; \
+    rm -rf "${src}" /tmp/kernel.tar.gz "${kernelDevelRpm}"; \
     dnf clean all; \
     rm -rf /var/cache/dnf /var/log/*
 
