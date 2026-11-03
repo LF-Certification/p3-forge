@@ -1,5 +1,11 @@
 # Changelog
 
+## [p3-sandbox-terminal-v1.4.2] - 2026-11-03
+
+### 🐛 Bug Fixes
+
+- Set SSH logging to ERROR
+
 ## [p3-sandbox-terminal-v1.4.1] - 2026-07-10
 
 ### 🐛 Bug Fixes
