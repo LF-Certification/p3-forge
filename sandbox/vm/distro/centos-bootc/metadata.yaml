@@ -3,4 +3,4 @@ settings:
   distro_version: [stream10]
   upstream_image: [quay.io/containerdisks/debian]
   upstream_image_tag: [13-2602110210]
-  centos_bootc_image: ["ghcr.io/lf-certification/centos-bootc@sha256:ff4bcbfafa4ac66bd51cdb0a3a6e7c33fd34e1938e6f54902e969da7d50fe5b4"] # v0.1.1
+  centos_bootc_image: ["ghcr.io/lf-certification/centos-bootc@sha256:097bc008377d0f02b671fba32ebe58961040915745467613c7f2e6cc37484ce8"] # v0.1.2
