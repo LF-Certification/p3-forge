@@ -9,6 +9,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+# Go package, not a build output.
+!cli/lfed/internal/build/
 develop-eggs/
 dist/
 downloads/
