@@ -39,7 +39,14 @@ fi
 TAG_PREFIX=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/|-|g')
 IMAGE_NAME=$(echo "$IMAGE_PATH" | sed 's|images/||' | sed 's|/.*||')
 export IMAGE_NAME
-NEXT_VERSION=$(git cliff --bumped-version --include-path "$IMAGE_PATH/**" --tag-pattern "$TAG_PREFIX-v*")
+# git-cliff exits non-zero when no tag matches the pattern: it proposes a bare
+# `0.1.0` and then rejects it against the pattern. A new image has no tag, so
+# start it at 0.0.1 under its own prefix.
+if [ -z "$(git tag --list "$TAG_PREFIX-v*")" ]; then
+    NEXT_VERSION="$TAG_PREFIX-v0.0.1"
+else
+    NEXT_VERSION=$(git cliff --bumped-version --include-path "$IMAGE_PATH/**" --tag-pattern "$TAG_PREFIX-v*")
+fi
 if [ -z "$NEXT_VERSION" ]; then
     echo "No changes detected for $IMAGE_PATH since last release"
     exit 1
