@@ -88,6 +88,22 @@ make release-dry-run-alpine             # Preview alpine next version
 make list-dynamic-targets               # Show all available dynamic targets
 ```
 
+### Go modules: `cli/lfed`
+
+`cli/lfed` is a Go module, not an image. Its tag form is `cli/lfed/vX.Y.Z`
+(for example `cli/lfed/v0.1.0`). Go requires this form to resolve a nested
+module at a version: `go get github.com/LF-Certification/p3-forge/cli/lfed@v0.1.0`.
+
+- `make release cli/lfed` derives the version from Conventional Commits under
+  `cli/lfed/`, writes `cli/lfed/CHANGELOG.md`, commits and tags. The first
+  release has no tag to bump from and uses `INITIAL_VERSION` (default `0.1.0`).
+- The tag does not match `*-v*.*.*`, so `release-build.yml` (images) ignores
+  it. `cli-release.yml` builds the `lfed` binaries and publishes a GitHub
+  Release named `lfed vX.Y.Z`.
+- The module is `v0.x`. Go gives `v0` no compatibility promise: `sdk/` MAY
+  change between minor versions. Plugins pin the SDK in their `go.mod` and
+  declare the host range they accept in `requires_lfed`.
+
 ## Dev Builds
 
 Dev builds are automatically triggered when changes are pushed to any branch that affects files in `images/`. These builds use a special versioning scheme for pre-release testing:
