@@ -1,4 +1,3 @@
-// Package context implements `lfed context list|use|current`.
 package context
 
 import (
@@ -11,7 +10,6 @@ import (
 	"github.com/LF-Certification/p3-forge/cli/lfed/sdk/output"
 )
 
-// NewCmd builds the `lfed context` group.
 func NewCmd(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "context",
@@ -67,7 +65,6 @@ func newListCmd(f *cmdutil.Factory) *cobra.Command {
 	}
 }
 
-// useResult is the -o json|yaml document of `context use`.
 type useResult struct {
 	CurrentContext string `json:"current_context"`
 }
@@ -104,7 +101,6 @@ func newUseCmd(f *cmdutil.Factory) *cobra.Command {
 	}
 }
 
-// currentResult is the -o json|yaml document of `context current`.
 type currentResult struct {
 	Name string `json:"name"`
 }

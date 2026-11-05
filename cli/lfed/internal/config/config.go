@@ -1,4 +1,3 @@
-// Package config reads and writes $XDG_CONFIG_HOME/lfed/config.yaml.
 package config
 
 import (
@@ -14,12 +13,10 @@ import (
 
 const fileName = "config.yaml"
 
-// Config is the on-disk document.
 type Config struct {
 	CurrentContext string `yaml:"current_context,omitempty"`
 }
 
-// Dir returns the config directory. LFED_CONFIG_DIR overrides it for tests.
 func Dir() (string, error) {
 	if d := os.Getenv("LFED_CONFIG_DIR"); d != "" {
 		return d, nil
@@ -34,7 +31,6 @@ func Dir() (string, error) {
 	return filepath.Join(home, ".config", "lfed"), nil
 }
 
-// Load reads the config file. A missing file yields an empty Config.
 func Load() (*Config, error) {
 	dir, err := Dir()
 	if err != nil {
@@ -54,8 +50,6 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
-// Save replaces the config file atomically with mode 0600. It creates the
-// directory with mode 0700 and narrows a wider existing directory on unix.
 func (c *Config) Save() error {
 	dir, err := Dir()
 	if err != nil {

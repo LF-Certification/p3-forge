@@ -19,17 +19,13 @@ The images are published too, so a Dockerfile or script that bakes in a secret
 or an internal endpoint hands it to anyone who pulls the image, not just to
 anyone who reads the repo.
 
-## Releasing an image or the lfed CLI
+## Releasing an image
 
 Read `VERSIONING.md` before cutting a release. Releases go through
 `make release images/<name>`, which works out the next version from the
 Conventional Commit messages, regenerates that image's changelog, commits it,
 and creates an annotated tag. Preview any of it with
 `make release-dry-run images/<name>`.
-
-The lfed CLI releases the same way with `make release cli/lfed`. Its tag is
-`cli/lfed/vX.Y.Z` (a Go module tag), and the tag push runs `cli-release.yml`,
-which publishes a GitHub Release with the binaries.
 
 Do not write a release tag by hand or push a raw tag ref. Doing so skips the
 changelog and the release commit, and a published `vX.Y.Z` tag is frozen — the

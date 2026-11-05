@@ -25,8 +25,6 @@ func setPluginDir(t *testing.T) string {
 	return dir
 }
 
-// writeFake creates <dir>/<name>/lfed-<name> and a manifest without a real
-// binary. Tests that only read use it.
 func writeFake(t *testing.T, dir, name, summary string) {
 	t.Helper()
 	pdir := filepath.Join(dir, name)
@@ -84,7 +82,6 @@ func TestLookup(t *testing.T) {
 	}
 }
 
-// badNames are words that MUST never reach a path join.
 var badNames = []string{"..", "../..", "a/../..", "/", "foo/..", "-x", "Foo", ".", "", "a/b", `a\b`, ".install-x", ".prev-hello-x"}
 
 func TestLookupRejectsBadNames(t *testing.T) {
@@ -114,7 +111,7 @@ func TestLookupRejectsOtherSchemaVersion(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	// The plugin dir is nested so a traversal would reach the canary.
+
 	root := t.TempDir()
 	dir := filepath.Join(root, "a", "plugins")
 	t.Setenv("LFED_PLUGIN_DIR", dir)
@@ -137,7 +134,6 @@ func TestRemove(t *testing.T) {
 		}
 	}
 
-	// A broken install (no manifest, no binary) is still removable.
 	if err := os.MkdirAll(filepath.Join(dir, "broken"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -288,8 +284,6 @@ func TestInstallFromDirectory(t *testing.T) {
 		}
 	}
 
-	// Reinstall replaces the existing install without error and leaves no
-	// .prev- directory.
 	installHello(t, f)
 	if _, err := Lookup("hello"); err != nil {
 		t.Fatal(err)
@@ -317,7 +311,6 @@ func TestInstallKeepsOldPluginWhenReplaceFails(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Fail the move of the staged tree onto the final path.
 	renameDir = func(from, to string) error {
 		if strings.Contains(filepath.Base(from), ".install-") {
 			return errors.New("injected rename failure")
@@ -365,10 +358,10 @@ func TestExec(t *testing.T) {
 	var out, errOut bytes.Buffer
 	f := testFactory(t, &out, &errOut)
 	p := installHello(t, f)
-	// Stale operator values MUST NOT pass through.
+
 	t.Setenv("LFED_YES", "stale")
 	t.Setenv("LFED_INSECURE_STORAGE", "stale")
-	// No token is resolved or exported.
+
 	t.Setenv("LFED_TOKEN", "")
 	os.Unsetenv("LFED_TOKEN")
 	f.Token = func(context.Context) (string, error) {
@@ -408,7 +401,6 @@ func TestExec(t *testing.T) {
 		t.Errorf("ExitCode = %d, want 3", ExitCode(err))
 	}
 
-	// Run checks requires_lfed before executing.
 	f.Version = "9.0.0"
 	err = Run(context.Background(), f, "hello", nil)
 	if ExitCode(err) != 2 {

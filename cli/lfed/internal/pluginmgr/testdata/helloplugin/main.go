@@ -1,8 +1,3 @@
-// Command helloplugin is a minimal lfed plugin used by pluginmgr tests.
-//
-// `__metadata` prints a manifest. `fail` exits 3. `kill` kills itself.
-// `wait` prints "ready" and blocks until a signal ends it. Any other
-// invocation prints the LFED_* environment and the arguments.
 package main
 
 import (

@@ -10,13 +10,8 @@ import (
 	"github.com/LF-Certification/p3-forge/cli/lfed/internal/pluginmgr"
 )
 
-// pluginsFunc is the template function name used by usageTemplate.
 const pluginsFunc = "lfedPlugins"
 
-// usageTemplate returns the Cobra default usage template with a Plugins
-// section before Flags. The section renders only for the root command.
-// When the anchor is missing after a Cobra upgrade the section is appended
-// so help never loses the plugin list.
 func usageTemplate(cmd *cobra.Command) string {
 	cobra.AddTemplateFunc(pluginsFunc, pluginsSection)
 	section := "{{if not .HasParent}}{{" + pluginsFunc + "}}{{end}}"
@@ -28,16 +23,13 @@ func usageTemplate(cmd *cobra.Command) string {
 	return tmpl + section
 }
 
-// pluginsSection renders installed, non-hidden plugins from manifests. It
-// returns "" when none are installed or the plugin dir is unreadable, so
-// help output never fails.
 func pluginsSection() string {
 	installed, err := pluginmgr.List()
 	if err != nil {
 		return ""
 	}
 	var b strings.Builder
-	// minwidth 14 is two indent spaces, NamePadding (11) and one space.
+
 	tw := tabwriter.NewWriter(&b, 14, 0, 1, ' ', 0)
 	n := 0
 	for _, p := range installed {

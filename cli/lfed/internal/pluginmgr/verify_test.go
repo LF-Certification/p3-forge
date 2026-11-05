@@ -15,10 +15,6 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// Full signature verification needs a bundle signed through Sigstore
-// public-good. These tests cover policy selection and referrer parsing
-// only; verification runs against the real registry.
-
 func TestSignerFor(t *testing.T) {
 	t.Setenv(EnvSignerIdentity, "")
 	t.Setenv(EnvSignerIssuer, "")
@@ -44,12 +40,10 @@ func TestSignerFor(t *testing.T) {
 		}
 	}
 
-	// The default registry needs the version.
 	if _, err := signerFor(src, ""); err == nil {
 		t.Error("default registry without version accepted")
 	}
 
-	// A prefix that is not a path boundary is not the default registry.
 	other := Source{Type: SourceOCI, Ref: DefaultRegistry + "-fork/cluster"}
 	_, err = signerFor(other, "1.2.0")
 	if err == nil || !strings.Contains(err.Error(), EnvSignerIdentity) || !strings.Contains(err.Error(), EnvSignerIssuer) || !strings.Contains(err.Error(), "--allow-unsigned") {
@@ -120,9 +114,6 @@ func TestParseBundleReferrer(t *testing.T) {
 	}
 }
 
-// TestReferrerBundlesBounded serves one referrers page with more
-// descriptors than maxReferrers. The host MUST stop with an error before
-// it fetches any of them.
 func TestReferrerBundlesBounded(t *testing.T) {
 	var manifestFetches int
 	index := []byte(`{"schemaVersion":2,"mediaType":"application/vnd.oci.image.index.v1+json","manifests":[]}`)

@@ -9,16 +9,10 @@ import (
 	"time"
 )
 
-// UsernameClaim is the LFID username claim in education API access tokens.
-// The delivery service returns 401 without it.
 const UsernameClaim = "http://lfx.dev/claims/username"
 
-// idTokenUsernameClaim is the LFID username claim in Auth0 id_tokens. It
-// uses a different namespace than the access token.
-const idTokenUsernameClaim = "https://sso.linuxfoundation.org/claims/username" // #nosec G101 -- claim name URL, not a credential
+const idTokenUsernameClaim = "https://sso.linuxfoundation.org/claims/username" // #nosec G101
 
-// Claims are the access token fields that `lfed auth status` shows. They
-// come from an unverified decode; the API verifies the token on each call.
 type Claims struct {
 	Username string
 	Subject  string
@@ -26,7 +20,6 @@ type Claims struct {
 	Expiry   time.Time
 }
 
-// DecodeClaims decodes the payload of a JWT without signature checks.
 func DecodeClaims(token string) (Claims, error) {
 	payload, err := jwtPayload(token)
 	if err != nil {
@@ -48,8 +41,6 @@ func DecodeClaims(token string) (Claims, error) {
 	return claims, nil
 }
 
-// IdentityFromIDToken returns a display name from an id_token for the
-// "Logged in as" message. It returns "" when nothing usable is present.
 func IdentityFromIDToken(idToken string) string {
 	payload, err := jwtPayload(idToken)
 	if err != nil {
@@ -74,7 +65,6 @@ func IdentityFromIDToken(idToken string) string {
 	}
 }
 
-// jwtPayload returns the decoded second segment of a compact JWT.
 func jwtPayload(token string) ([]byte, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {

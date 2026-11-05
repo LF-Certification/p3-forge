@@ -1,8 +1,3 @@
-// Package contexts is the compiled-in table of deployment contexts.
-//
-// A context names one Auth0 tenant and one education API gateway. The lfed CLI
-// knows three: dev, staging, prod. Backend deployment suffixes MUST NOT
-// appear here; a plugin that needs them owns that mapping.
 package contexts
 
 import (
@@ -11,35 +6,30 @@ import (
 	"strings"
 )
 
-// Name is a context identifier accepted by -c and LFED_CONTEXT.
 type Name string
 
-// The three contexts the lfed CLI knows.
 const (
 	Dev     Name = "dev"
 	Staging Name = "staging"
 	Prod    Name = "prod"
 )
 
-// Context is one row of the table.
 type Context struct {
 	Name Name
-	// Auth0Domain is the host for /oauth/device/code and /oauth/token.
+
 	Auth0Domain string
-	// Issuer is the expected iss claim of access tokens.
+
 	Issuer string
-	// Audience is the API identifier requested at login. It ends with "/".
+
 	Audience string
-	// ClientID is the Auth0 native client for the device code grant.
+
 	ClientID string
 }
 
-// APIBaseURL returns the gateway base with no trailing slash.
 func (c Context) APIBaseURL() string {
 	return strings.TrimSuffix(c.Audience, "/")
 }
 
-// table is ordered dev, staging, prod for listings.
 var table = []Context{
 	{
 		Name:        Dev,
@@ -64,17 +54,14 @@ var table = []Context{
 	},
 }
 
-// ErrNoContext is returned by Resolve when no source names a context.
 var ErrNoContext = errors.New("no context set; run `lfed context use <dev|staging|prod>`")
 
-// All returns every context in listing order.
 func All() []Context {
 	out := make([]Context, len(table))
 	copy(out, table)
 	return out
 }
 
-// Names returns the accepted context names in listing order.
 func Names() []string {
 	out := make([]string, len(table))
 	for i, c := range table {
@@ -83,7 +70,6 @@ func Names() []string {
 	return out
 }
 
-// Lookup returns the context called name.
 func Lookup(name string) (Context, error) {
 	for _, c := range table {
 		if string(c.Name) == name {
@@ -93,9 +79,6 @@ func Lookup(name string) (Context, error) {
 	return Context{}, fmt.Errorf("unknown context %q; expected one of %s", name, strings.Join(Names(), ", "))
 }
 
-// Resolve picks the context from the first non-empty source: the -c flag,
-// LFED_CONTEXT, then the config file. It returns ErrNoContext when all are
-// empty.
 func Resolve(flag, env, stored string) (Context, error) {
 	for _, candidate := range []string{flag, env, stored} {
 		if candidate != "" {

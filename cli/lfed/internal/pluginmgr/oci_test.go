@@ -25,8 +25,6 @@ import (
 	"oras.land/oras-go/v2/registry/remote"
 )
 
-// testRegistry serves an in-memory OCI registry and points
-// LFED_PLUGIN_REGISTRY at <host>/lfed-cli-plugins.
 func testRegistry(t *testing.T) string {
 	t.Helper()
 	srv := httptest.NewServer(registry.New(registry.Logger(log.New(io.Discard, "", 0))))
@@ -39,7 +37,6 @@ func testRegistry(t *testing.T) string {
 	return host
 }
 
-// helloBinary builds testdata/helloplugin once per test.
 func helloBinary(t *testing.T) string {
 	t.Helper()
 	bin := filepath.Join(t.TempDir(), "lfed-hello")
@@ -49,7 +46,6 @@ func helloBinary(t *testing.T) string {
 	return bin
 }
 
-// tarGz packs bin as name, plus a LICENSE file, like a GoReleaser archive.
 func tarGz(t *testing.T, bin, name string) []byte {
 	t.Helper()
 	data, err := os.ReadFile(bin)
@@ -83,14 +79,11 @@ type platform struct{ os, arch string }
 
 var hostPlatform = platform{runtime.GOOS, runtime.GOARCH}
 
-// publish pushes one plugin version the way the release workflow does:
-// one artifact manifest per platform, then an index tagged with version.
 func publish(t *testing.T, host, name, version, requires string, platforms []platform, archive []byte) {
 	t.Helper()
 	publishArtifact(t, host, name, version, requires, ArtifactType, platforms, archive)
 }
 
-// publishArtifact is publish with the platform manifest artifactType.
 func publishArtifact(t *testing.T, host, name, version, requires, artifactType string, platforms []platform, archive []byte) {
 	t.Helper()
 	ctx := context.Background()
@@ -195,7 +188,6 @@ func TestParseSourceRegistryOverride(t *testing.T) {
 	}
 }
 
-// testDigest is a well-formed sha256 digest.
 const testDigest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
 
 func TestSourceString(t *testing.T) {
@@ -220,8 +212,7 @@ func TestInstallFromOCIPicksHighestCompatible(t *testing.T) {
 	host := testRegistry(t)
 	bin := helloBinary(t)
 	archive := tarGz(t, bin, "lfed-hello")
-	// 0.0.1 installs on lfed 0.x; 0.0.2 needs lfed 9. Non-semver,
-	// pre-release and platform tags are ignored.
+
 	publish(t, host, "hello", "0.0.1", ">=0.1.0 <1", []platform{hostPlatform, {"plan9", "mips"}}, archive)
 	publish(t, host, "hello", "0.0.2", ">=9", []platform{hostPlatform}, archive)
 	publish(t, host, "hello", "latest", "", []platform{hostPlatform}, archive)
@@ -253,7 +244,7 @@ func TestInstallFromOCIPicksHighestCompatible(t *testing.T) {
 	if info.Mode()&0o111 == 0 {
 		t.Errorf("binary mode %v is not executable", info.Mode())
 	}
-	// The record round-trips through List.
+
 	got, err := Lookup("hello")
 	if err != nil {
 		t.Fatal(err)
@@ -261,7 +252,7 @@ func TestInstallFromOCIPicksHighestCompatible(t *testing.T) {
 	if got.Source != p.Source {
 		t.Errorf("Lookup source = %+v, want %+v", got.Source, p.Source)
 	}
-	// The installed binary runs.
+
 	if err := Run(context.Background(), f, "hello", []string{"greet"}); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -296,8 +287,6 @@ func TestInstallFromOCIPinned(t *testing.T) {
 		t.Errorf("upgrade of a version pin = %+v", r)
 	}
 
-	// A digest pin resolves the index by digest. The record keeps the
-	// digest and no version.
 	d := p.Source.Digest
 	p, err = Install(ctx, f, "hello@"+d, unsigned)
 	if err != nil {
@@ -343,7 +332,7 @@ func TestInstallFromOCIRequiresSignature(t *testing.T) {
 	f := testFactory(t, &out, &errOut)
 	t.Setenv(EnvSignerIdentity, "")
 	t.Setenv(EnvSignerIssuer, "")
-	// The test registry is not DefaultRegistry and no signer is set.
+
 	_, err := Install(context.Background(), f, "hello", Options{})
 	if err == nil || !strings.Contains(err.Error(), "--allow-unsigned") {
 		t.Fatalf("err = %v, want a signer policy error", err)
@@ -376,7 +365,6 @@ func TestInstallFromOCIBounds(t *testing.T) {
 		t.Errorf("oversize layer descriptor: err = %v", err)
 	}
 
-	// The compressed layer fits; the expanded tar does not.
 	setMaxLayerBytes(t, int64(len(archive)))
 	_, err = Install(ctx, f, "hello", unsigned)
 	if err == nil || !strings.Contains(err.Error(), "expands to more than") {
@@ -387,7 +375,6 @@ func TestInstallFromOCIBounds(t *testing.T) {
 	}
 }
 
-// setMaxLayerBytes lowers maxLayerBytes for one test.
 func setMaxLayerBytes(t *testing.T, n int64) {
 	t.Helper()
 	old := maxLayerBytes
@@ -395,7 +382,6 @@ func setMaxLayerBytes(t *testing.T, n int64) {
 	t.Cleanup(func() { maxLayerBytes = old })
 }
 
-// tarEntry is one entry for tarGzEntries.
 type tarEntry struct {
 	name     string
 	typeflag byte
@@ -483,7 +469,6 @@ func TestInstallFromOCIErrors(t *testing.T) {
 	f := testFactory(t, &out, &errOut)
 	ctx := context.Background()
 
-	// Nothing compatible.
 	publish(t, host, "hello", "0.0.2", ">=9", []platform{hostPlatform}, tarGz(t, bin, "lfed-hello"))
 	_, err := Install(ctx, f, "hello", Options{AllowUnsigned: true})
 	var noRelease *NoReleaseError
@@ -494,34 +479,29 @@ func TestInstallFromOCIErrors(t *testing.T) {
 		t.Errorf("NoReleaseError = %+v", noRelease)
 	}
 
-	// Unknown repository.
 	_, err = Install(ctx, f, "nothing", Options{AllowUnsigned: true})
 	if err == nil || !strings.Contains(err.Error(), "lfed-cli-plugins/nothing not found") {
 		t.Fatalf("unknown repo: err = %v", err)
 	}
 
-	// No build for this platform.
 	publish(t, host, "other", "0.0.1", "", []platform{{"plan9", "mips"}}, tarGz(t, bin, "lfed-other"))
 	_, err = Install(ctx, f, "other", Options{AllowUnsigned: true})
 	if err == nil || !strings.Contains(err.Error(), "no build for "+runtime.GOOS) {
 		t.Fatalf("platform: err = %v", err)
 	}
 
-	// Layer without the binary.
 	publish(t, host, "empty", "0.0.1", "", []platform{hostPlatform}, tarGz(t, bin, "README"))
 	_, err = Install(ctx, f, "empty", Options{AllowUnsigned: true})
 	if err == nil || !strings.Contains(err.Error(), "no file named lfed-empty") {
 		t.Fatalf("missing binary: err = %v", err)
 	}
 
-	// Repository name and plugin name disagree.
 	publish(t, host, "alias", "0.0.1", "", []platform{hostPlatform}, tarGz(t, bin, "lfed-alias"))
 	_, err = Install(ctx, f, "alias", Options{AllowUnsigned: true})
 	if err == nil || !strings.Contains(err.Error(), `plugin "hello", not "alias"`) {
 		t.Fatalf("name mismatch: err = %v", err)
 	}
 
-	// Tag and manifest version disagree.
 	publish(t, host, "hello", "0.0.3", "", []platform{hostPlatform}, tarGz(t, bin, "lfed-hello"))
 	_, err = Install(ctx, f, "hello@0.0.3", Options{AllowUnsigned: true})
 	if err == nil || !strings.Contains(err.Error(), "disagree") {
@@ -558,17 +538,15 @@ func TestUpgrade(t *testing.T) {
 	f := testFactory(t, &out, &errOut)
 	ctx := context.Background()
 
-	// stale: installed 0.0.1 from OCI; 0.0.2 is incompatible, so it stays
-	// current until a compatible newer version appears.
 	publish(t, host, "hello", "0.0.1", ">=0.1.0 <1", []platform{hostPlatform}, archive)
 	publish(t, host, "hello", "0.0.2", ">=9", []platform{hostPlatform}, archive)
 	if _, err := Install(ctx, f, "hello", Options{AllowUnsigned: true}); err != nil {
 		t.Fatal(err)
 	}
-	// path: installed from a directory.
+
 	writeFake(t, dir, "local", "Local")
 	rewriteSource(t, dir, "local", Source{Type: SourcePath, Path: "/src/local"})
-	// nosource: manifest without a source record.
+
 	writeFake(t, dir, "nosource", "No source")
 
 	results, err := Upgrade(ctx, f, nil, false, Options{AllowUnsigned: true})
@@ -589,8 +567,6 @@ func TestUpgrade(t *testing.T) {
 		t.Errorf("nosource = %+v", r)
 	}
 
-	// Simulate an older install: the binary stays 0.0.1 (the only version
-	// the test plugin reports), the recorded source drops to 0.0.0.
 	rewriteSource(t, dir, "hello", Source{Type: SourceOCI, Ref: host + "/lfed-cli-plugins/hello", Version: "0.0.0"})
 	results, err = Upgrade(ctx, f, []string{"hello"}, true, Options{AllowUnsigned: true})
 	if err != nil {
@@ -620,7 +596,6 @@ func TestUpgrade(t *testing.T) {
 	}
 }
 
-// rewriteSource replaces the source in an installed manifest.
 func rewriteSource(t *testing.T, dir, name string, src Source) {
 	t.Helper()
 	p, err := load(dir, name)

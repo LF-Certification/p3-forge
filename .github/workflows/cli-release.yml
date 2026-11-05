@@ -1,17 +1,5 @@
 name: CLI release
 
-# `make release cli/lfed` creates the tag. Pushing it runs this workflow,
-# which builds the lfed archives and publishes them as a GitHub Release.
-#
-# GoReleaser signs checksums.txt with cosign keyless (.goreleaser.yaml
-# `signs:`). The bundle checksums.txt.sigstore.json ships with the release.
-# install.sh verifies it with this certificate identity:
-#   https://github.com/LF-Certification/p3-forge/.github/workflows/cli-release.yml@refs/tags/cli/lfed/vX.Y.Z
-# and issuer https://token.actions.githubusercontent.com. Do not rename this
-# file without a change to install.sh.
-#
-# Every `uses:` is pinned to a commit SHA. Dependabot updates the pins
-# (.github/dependabot.yml).
 on:
   push:
     tags:
@@ -23,14 +11,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # GitHub Release
-      id-token: write # cosign keyless signing
+      contents: write
+      id-token: write
     defaults:
       run:
         working-directory: cli/lfed
     steps:
-      # fetch-depth 0 also fetches every branch, so origin/main is present
-      # for the release guard below.
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -75,15 +61,11 @@ jobs:
           VERSION="${GITHUB_REF_NAME#cli/lfed/v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      # GoReleaser reads the version from a `vX.Y.Z` tag on HEAD. The real
-      # tag is namespaced, so a local tag supplies the version. The local
-      # tag is never pushed.
       - name: Tag HEAD for GoReleaser
         run: |
           git tag -d "v${{ steps.version.outputs.version }}" 2>/dev/null || true
           git tag "v${{ steps.version.outputs.version }}"
 
-      # GoReleaser runs `cosign sign-blob` with the job's OIDC token.
       - name: Build and sign archives
         run: devbox run -- goreleaser release --clean
         env:

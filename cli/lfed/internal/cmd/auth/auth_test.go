@@ -20,16 +20,11 @@ import (
 	"github.com/LF-Certification/p3-forge/cli/lfed/internal/credstore"
 )
 
-// TestMain replaces the system store with go-keyring's in-memory mock.
-// Logout touches both backends, and tests MUST NOT touch the real
-// keychain.
 func TestMain(m *testing.M) {
 	keyring.MockInit()
 	os.Exit(m.Run())
 }
 
-// newFactory builds a Factory for the staging context with the plain-file
-// backend in a temporary state directory and the real TokenResolver.
 func newFactory(t *testing.T) (*cmdutil.Factory, *bytes.Buffer, *bytes.Buffer) {
 	t.Helper()
 	t.Setenv("LFED_STATE_DIR", t.TempDir())
@@ -71,7 +66,7 @@ func jwt(t *testing.T, payload map[string]any) string {
 func run(t *testing.T, f *cmdutil.Factory, args ...string) error {
 	t.Helper()
 	cmd := NewCmd(f)
-	// The root command silences usage and errors; stand in for it here.
+
 	cmd.SilenceUsage, cmd.SilenceErrors = true, true
 	cmd.SetArgs(args)
 	cmd.SetOut(f.IOStreams.Out)
@@ -174,8 +169,6 @@ func TestLoginWithTokenEmptyStdin(t *testing.T) {
 	}
 }
 
-// TestLogoutWithoutInsecureFlag logs in with --insecure-storage and logs
-// out without it. Logout removes the credentials file and the state file.
 func TestLogoutWithoutInsecureFlag(t *testing.T) {
 	f, _, errOut := newFactory(t)
 	stateDir := os.Getenv("LFED_STATE_DIR")
@@ -203,9 +196,6 @@ func TestLogoutWithoutInsecureFlag(t *testing.T) {
 	}
 }
 
-// TestTokenInsecureStorageFromEnv covers the plugin re-exec: the parent
-// lfed exports LFED_INSECURE_STORAGE, and `auth token` runs without the
-// flag.
 func TestTokenInsecureStorageFromEnv(t *testing.T) {
 	for _, tc := range []struct {
 		env     string
@@ -233,8 +223,6 @@ func TestTokenInsecureStorageFromEnv(t *testing.T) {
 	}
 }
 
-// TestLoginIgnoresInsecureStorageEnv checks that LFED_INSECURE_STORAGE
-// changes only `auth token`: login without the flag uses the system store.
 func TestLoginIgnoresInsecureStorageEnv(t *testing.T) {
 	f, _, _ := newFactory(t)
 	f.InsecureStorage = false

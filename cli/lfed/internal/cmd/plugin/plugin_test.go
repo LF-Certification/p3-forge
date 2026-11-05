@@ -19,7 +19,6 @@ func writeFake(t *testing.T, dir, name, version, summary string) {
 	writeFakeRequiring(t, dir, name, version, summary, ">=0.1.0 <1")
 }
 
-// writeFakeRequiring writes a plugin whose manifest pins requires_lfed.
 func writeFakeRequiring(t *testing.T, dir, name, version, summary, requires string) {
 	t.Helper()
 	pdir := filepath.Join(dir, name)
@@ -80,7 +79,7 @@ func TestListTwo(t *testing.T) {
 	if !strings.HasPrefix(lines[1], "hello ") || !strings.Contains(lines[1], "0.0.1") || !strings.Contains(lines[1], " ok ") || !strings.Contains(lines[1], "Say hello") {
 		t.Errorf("row 1 = %q", lines[1])
 	}
-	// An incompatible plugin stays listed and shows what it needs.
+
 	if !strings.HasPrefix(lines[2], "placement ") || !strings.Contains(lines[2], "needs lfed >=9.0.0") {
 		t.Errorf("row 2 = %q", lines[2])
 	}
@@ -145,7 +144,7 @@ func TestRemoveRejectsTraversal(t *testing.T) {
 func TestGroupWithoutSubcommandPrintsHelp(t *testing.T) {
 	var out bytes.Buffer
 	cmd := NewCmd(&cmdutil.Factory{IOStreams: cmdutil.IOStreams{Out: &out, ErrOut: &out}})
-	// An empty non-nil slice: nil makes Cobra read os.Args.
+
 	cmd.SetArgs([]string{})
 	cmd.SetOut(&out)
 	cmd.SetErr(&out)

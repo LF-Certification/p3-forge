@@ -3,12 +3,6 @@ set -euo pipefail
 
 # Create a release for the given path and update its changelog.
 # Usage: ./scripts/create-release.sh [--dry-run] <path>
-#
-# Tag form depends on the path:
-#   images/<name>  -> <name>-vX.Y.Z      (container image; see VERSIONING.md)
-#   <other path>   -> <path>/vX.Y.Z      (Go module, e.g. cli/lfed/v0.1.0)
-# The second form is what `go get module@vX.Y.Z` needs for a nested module.
-# A first release has no tag to bump from; it uses $INITIAL_VERSION (default 0.1.0).
 
 # Parse arguments
 DRY_RUN=false

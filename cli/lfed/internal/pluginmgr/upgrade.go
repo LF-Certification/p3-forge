@@ -9,23 +9,16 @@ import (
 	"github.com/LF-Certification/p3-forge/cli/lfed/internal/cmdutil"
 )
 
-// UpgradeResult is the outcome for one plugin.
 type UpgradeResult struct {
 	Name string `json:"name"`
 	From string `json:"from"`
-	// To is the version that is or would be installed. Equal to From when
-	// the plugin is current. Empty when the source cannot be upgraded.
+
 	To       string `json:"to,omitempty"`
 	Upgraded bool   `json:"upgraded"`
-	// Note explains a skip: current, dry run, pinned, or a non-upgradable
-	// source.
+
 	Note string `json:"note,omitempty"`
 }
 
-// Upgrade re-resolves every named plugin, or every installed plugin when
-// names is empty, and installs a newer compatible OCI version when one
-// exists. Pinned installs, path sources and installs without a recorded
-// source are reported, not changed. dryRun resolves without installing.
 func Upgrade(ctx context.Context, f *cmdutil.Factory, names []string, dryRun bool, opts Options) ([]UpgradeResult, error) {
 	var plugins []Installed
 	if len(names) == 0 {
@@ -99,8 +92,6 @@ func upgradeOne(ctx context.Context, f *cmdutil.Factory, p Installed, dryRun boo
 	return r, nil
 }
 
-// newer reports whether candidate is a higher semver than installed. When
-// either fails to parse, inequality decides.
 func newer(candidate, installed string) bool {
 	c, err1 := semver.NewVersion(candidate)
 	i, err2 := semver.NewVersion(installed)

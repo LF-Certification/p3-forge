@@ -16,21 +16,6 @@ import (
 	"github.com/LF-Certification/p3-forge/cli/lfed/internal/pluginmgr"
 )
 
-// Run executes argv for the lfed CLI.
-//
-// It pre-scans args before Cobra sees them. CLI flags before the first
-// word are recognised by the root persistent flag set; the first word that
-// is not a flag is the command. A core command, "help" of a core command,
-// "completion" or the Cobra completion hooks go to Cobra unchanged. Any
-// other word is a plugin name: the remaining args are forwarded raw. Before
-// `--`, the long forms of the CLI flags in them (--context, --output, --jq,
-// --yes, --insecure-storage) are also applied to the lfed CLI. The
-// shorthands -c and -o apply only before the plugin name; after it they
-// belong to the plugin. Cobra would otherwise strip or reject flags it does
-// not own, so the plugin would not see its own flags.
-//
-// Stdout is wrapped in an OutputCapture so --jq can filter the JSON the
-// command or plugin printed once it has finished.
 func Run(ctx context.Context, f *cmdutil.Factory, args []string) error {
 	capture := &cmdutil.OutputCapture{Real: f.IOStreams.Out}
 	f.IOStreams.Out = capture
@@ -41,7 +26,7 @@ func Run(ctx context.Context, f *cmdutil.Factory, args []string) error {
 		return err
 	}
 	if err != nil {
-		// The command failed after printing; show what it printed.
+
 		_, _ = capture.Real.Write(data)
 		return err
 	}
@@ -75,19 +60,12 @@ func run(ctx context.Context, f *cmdutil.Factory, args []string) error {
 	return err
 }
 
-// dispatch is a resolved plugin invocation.
 type dispatch struct {
 	name     string
 	rest     []string
 	complete bool
 }
 
-// split finds the plugin invocation in args. ok is false when Cobra must
-// handle args: a core command, help for one, no command word, or a flag
-// Cobra itself defines (--help, --version). A flag nobody defines is an
-// error here: left to Cobra it would be read as a flag with a value and
-// turn into a misleading "unknown command". CLI flags before the command
-// word are applied.
 func split(cmd *cobra.Command, args []string) (d dispatch, ok bool, err error) {
 	pf := cmd.PersistentFlags()
 	i := 0
@@ -99,8 +77,7 @@ func split(cmd *cobra.Command, args []string) (d dispatch, ok bool, err error) {
 		fl, value, n, known := hostFlag(pf, args, i)
 		if !known {
 			if isCobraFlag(a) || definedFlag(pf, a) {
-				// --help/--version, or a CLI flag missing its value:
-				// Cobra reports both correctly.
+
 				return dispatch{}, false, nil
 			}
 			return dispatch{}, false, &cmdutil.UsageError{Err: fmt.Errorf("unknown flag: %s", a)}
@@ -116,14 +93,13 @@ func split(cmd *cobra.Command, args []string) (d dispatch, ok bool, err error) {
 	word := args[i]
 	switch word {
 	case cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd:
-		// The last arg is the word being completed. A plugin name still
-		// being typed is completed by Cobra from the root ValidArgsFunction.
+
 		if i+2 >= len(args) || isCore(cmd, args[i+1]) {
 			return dispatch{}, false, nil
 		}
 		return dispatch{name: args[i+1], rest: args[i+2:], complete: true}, true, nil
 	case "help":
-		// `lfed help <plugin> [sub...]` is `lfed <plugin> [sub...] --help`.
+
 		if i+1 < len(args) && !isCore(cmd, args[i+1]) && !strings.HasPrefix(args[i+1], "-") {
 			return dispatch{name: args[i+1], rest: append(slices.Clone(args[i+2:]), "--help")}, true, nil
 		}
@@ -135,7 +111,6 @@ func split(cmd *cobra.Command, args []string) (d dispatch, ok bool, err error) {
 	return dispatch{name: word, rest: args[i+1:]}, true, nil
 }
 
-// isCobraFlag reports the flags Cobra adds to the root itself.
 func isCobraFlag(a string) bool {
 	switch strings.SplitN(a, "=", 2)[0] {
 	case "-h", "--help", "-v", "--version":
@@ -144,7 +119,6 @@ func isCobraFlag(a string) bool {
 	return false
 }
 
-// definedFlag reports whether a names a flag in pf, regardless of value.
 func definedFlag(pf *pflag.FlagSet, a string) bool {
 	name := strings.SplitN(a, "=", 2)[0]
 	if strings.HasPrefix(name, "--") {
@@ -153,9 +127,6 @@ func definedFlag(pf *pflag.FlagSet, a string) bool {
 	return len(name) >= 2 && pf.ShorthandLookup(name[1:2]) != nil
 }
 
-// isCore reports whether word names a core command, an alias, or a Cobra
-// built-in. Cobra adds help and completion only inside Execute, so they
-// are listed here.
 func isCore(cmd *cobra.Command, word string) bool {
 	switch word {
 	case "help", "completion":
@@ -169,8 +140,6 @@ func isCore(cmd *cobra.Command, word string) bool {
 	return false
 }
 
-// commandWords lists every word that can follow `lfed`: core commands and
-// installed plugins.
 func commandWords(cmd *cobra.Command) []string {
 	var words []string
 	for _, c := range cmd.Commands() {
@@ -187,9 +156,6 @@ func commandWords(cmd *cobra.Command) []string {
 	return words
 }
 
-// suggest returns the candidates close to word: sharing a prefix of two
-// or more characters, or within an edit distance of two. Sorted for
-// stable messages.
 func suggest(word string, candidates []string) []string {
 	var out []string
 	lower := strings.ToLower(word)
@@ -223,10 +189,6 @@ func editDistance(a, b string) int {
 	return prev[len(b)]
 }
 
-// applyLfedFlags sets CLI flags that appear among plugin args before `--`.
-// It reads only the long forms (--name, --name=value). Shorthands such as
-// -c and -o belong to the plugin. The args stay unchanged so the plugin
-// also receives them. Words the lfed CLI does not own are skipped.
 func applyLfedFlags(pf *pflag.FlagSet, args []string) error {
 	for i := 0; i < len(args); {
 		if args[i] == "--" {
@@ -249,9 +211,6 @@ func applyLfedFlags(pf *pflag.FlagSet, args []string) error {
 	return nil
 }
 
-// hostFlag parses the flag at args[i] against pf. n is the number of args
-// consumed. known is false for non-flags, flags pf does not define, and
-// value flags with no value left.
 func hostFlag(pf *pflag.FlagSet, args []string, i int) (fl *pflag.Flag, value string, n int, known bool) {
 	a := args[i]
 	if !strings.HasPrefix(a, "-") || a == "-" || a == "--" {

@@ -22,15 +22,11 @@ import (
 	"github.com/LF-Certification/p3-forge/cli/lfed/internal/credstore"
 )
 
-// TestMain replaces the system store with go-keyring's in-memory mock.
-// Logout and a backend switch touch both backends, and tests MUST NOT
-// touch the real keychain.
 func TestMain(m *testing.M) {
 	keyring.MockInit()
 	os.Exit(m.Run())
 }
 
-// tokenReply is one scripted answer of the fake /oauth/token endpoint.
 type tokenReply struct {
 	status int
 	body   map[string]any
@@ -44,13 +40,11 @@ func oauthOK(body map[string]any) tokenReply {
 	return tokenReply{status: http.StatusOK, body: body}
 }
 
-// fakeAuth0 serves the device code and token endpoints. Token replies are
-// consumed in order; the last one repeats.
 type fakeAuth0 struct {
 	t       *testing.T
 	mu      sync.Mutex
 	replies []tokenReply
-	// deviceReqs and tokenReqs record the form bodies received.
+
 	deviceReqs []map[string]string
 	tokenReqs  []map[string]string
 	expiresIn  int
@@ -105,7 +99,6 @@ func (f *fakeAuth0) tokenRequests() []map[string]string {
 	return append([]map[string]string(nil), f.tokenReqs...)
 }
 
-// jwt builds an unsigned compact JWT with the given payload.
 func jwt(t *testing.T, payload map[string]any) string {
 	t.Helper()
 	b, err := json.Marshal(payload)
@@ -198,7 +191,7 @@ func TestDeviceLoginSlowDown(t *testing.T) {
 	if _, err := DeviceLogin(context.Background(), c, testStore(t), LoginOptions{Out: &bytes.Buffer{}, Insecure: true}); err != nil {
 		t.Fatalf("DeviceLogin: %v", err)
 	}
-	// Interval 1s, then slow_down adds 5s before the next poll.
+
 	if elapsed := time.Since(start); elapsed < 6*time.Second {
 		t.Errorf("polling did not back off after slow_down: %v", elapsed)
 	}
@@ -262,7 +255,7 @@ func TestTokenRefreshesExpired(t *testing.T) {
 	fake, srv := newFakeAuth0(t, oauthOK(map[string]any{"access_token": "at-2", "refresh_token": "rt-2", "expires_in": 3600, "token_type": "Bearer"}))
 	c := testContext(t, srv)
 	store := testStore(t)
-	// Expires in 30s: inside the 60s leeway, so a refresh is required.
+
 	if err := persistLogin(context.Background(), store, credstore.Credentials{RefreshToken: "rt-1", AccessToken: "at-1", AccessTokenExpiry: time.Now().Add(30 * time.Second)}, true); err != nil {
 		t.Fatal(err)
 	}
@@ -345,14 +338,12 @@ func TestLogoutRemovesEverything(t *testing.T) {
 	if _, err := store.LoadDeviceState(); !errors.Is(err, credstore.ErrNotFound) {
 		t.Errorf("state after logout: %v", err)
 	}
-	// A second logout is a no-op.
+
 	if _, err := Logout(context.Background(), store); err != nil {
 		t.Errorf("second logout: %v", err)
 	}
 }
 
-// TestLogoutIgnoresFlag logs in with the plain-file backend and logs out
-// through a store opened for the system store. Both files are removed.
 func TestLogoutIgnoresFlag(t *testing.T) {
 	keyring.MockInit()
 	dir := t.TempDir()
@@ -371,8 +362,6 @@ func TestLogoutIgnoresFlag(t *testing.T) {
 	}
 }
 
-// TestLogoutWithoutStateRemovesFile covers a plain file left without a
-// login state. Logout removes it.
 func TestLogoutWithoutStateRemovesFile(t *testing.T) {
 	dir := t.TempDir()
 	store := mustStore(t, dir, true)
@@ -387,8 +376,6 @@ func TestLogoutWithoutStateRemovesFile(t *testing.T) {
 	}
 }
 
-// TestLogoutOtherBackendFailureIsWarning makes the system store fail. A
-// plain-file login still logs out, and the failure is a warning.
 func TestLogoutOtherBackendFailureIsWarning(t *testing.T) {
 	keyring.MockInitWithError(errors.New("no D-Bus session"))
 	t.Cleanup(keyring.MockInit)
@@ -405,8 +392,6 @@ func TestLogoutOtherBackendFailureIsWarning(t *testing.T) {
 	}
 }
 
-// TestBackendSwitchRemovesOldSecret logs in with one backend and then the
-// other. The second login deletes the secret of the first.
 func TestBackendSwitchRemovesOldSecret(t *testing.T) {
 	t.Run("keyring to file", func(t *testing.T) {
 		keyring.MockInit()
@@ -439,9 +424,6 @@ func TestBackendSwitchRemovesOldSecret(t *testing.T) {
 	})
 }
 
-// TestTokenConcurrentRefreshOnce runs two Token calls on an expired
-// cache. The context lock makes the second call use the token that the
-// first call saved, so the refresh token is redeemed once.
 func TestTokenConcurrentRefreshOnce(t *testing.T) {
 	fake, srv := newFakeAuth0(t, oauthOK(map[string]any{"access_token": "at-2", "refresh_token": "rt-2", "expires_in": 3600, "token_type": "Bearer"}))
 	c := testContext(t, srv)
@@ -453,7 +435,7 @@ func TestTokenConcurrentRefreshOnce(t *testing.T) {
 	tokens := make([]string, 2)
 	errs := make([]error, 2)
 	for i := range 2 {
-		// Each goroutine opens its own store, as two processes do.
+
 		store := mustStore(t, dir, true)
 		wg.Go(func() { tokens[i], errs[i] = Token(context.Background(), c, store, true) })
 	}
@@ -468,8 +450,6 @@ func TestTokenConcurrentRefreshOnce(t *testing.T) {
 	}
 }
 
-// TestLockWaitEndsWithContext holds the lock and checks that a second
-// Lock call returns when its context ends.
 func TestLockWaitEndsWithContext(t *testing.T) {
 	dir := t.TempDir()
 	if err := persistLogin(context.Background(), mustStore(t, dir, true), credstore.Credentials{RefreshToken: "rt"}, true); err != nil {
@@ -487,8 +467,6 @@ func TestLockWaitEndsWithContext(t *testing.T) {
 	}
 }
 
-// TestTokenHTTPTimeout checks that Token gives the refresh request a
-// client with a timeout.
 func TestTokenHTTPTimeout(t *testing.T) {
 	ctx := withHTTPClient(context.Background())
 	client, ok := ctx.Value(oauth2.HTTPClient).(*http.Client)

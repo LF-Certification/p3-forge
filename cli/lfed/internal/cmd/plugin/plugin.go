@@ -1,4 +1,3 @@
-// Package plugin implements `lfed plugin install|list|remove`.
 package plugin
 
 import (
@@ -12,7 +11,6 @@ import (
 	sdkplugin "github.com/LF-Certification/p3-forge/cli/lfed/sdk/plugin"
 )
 
-// NewCmd builds the `lfed plugin` group.
 func NewCmd(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "plugin",
@@ -24,7 +22,6 @@ func NewCmd(f *cmdutil.Factory) *cobra.Command {
 	return cmd
 }
 
-// allowUnsignedUsage is the help text of --allow-unsigned.
 const allowUnsignedUsage = "Install without a Sigstore signature. Only for registries you control."
 
 func newInstallCmd(f *cmdutil.Factory) *cobra.Command {
@@ -78,8 +75,6 @@ config.`,
 	return cmd
 }
 
-// reservedNames are the core command words plus the ones Cobra adds at
-// Execute time. A plugin with one of these names is unreachable.
 func reservedNames(root *cobra.Command) []string {
 	names := []string{"help", "completion"}
 	for _, c := range root.Commands() {
@@ -88,12 +83,10 @@ func reservedNames(root *cobra.Command) []string {
 	return names
 }
 
-// listRow is one `plugin list` entry: the manifest, its source and the
-// compatibility check.
 type listRow struct {
 	sdkplugin.Manifest
 	Source pluginmgr.Source `json:"source"`
-	// Compatible is false when requires_lfed rejects this lfed version.
+
 	Compatible bool `json:"compatible"`
 }
 
@@ -203,8 +196,6 @@ func upgradeResult(r pluginmgr.UpgradeResult) string {
 	return r.Note
 }
 
-// Names returns "name\tsummary" completions for installed plugins. Hidden
-// plugins are omitted. Errors yield no completions.
 func Names() []string {
 	installed, err := pluginmgr.List()
 	if err != nil {

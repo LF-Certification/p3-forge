@@ -1,4 +1,3 @@
-// Package auth obtains the access token a plugin sends to the API.
 package auth
 
 import (
@@ -11,13 +10,6 @@ import (
 	"strings"
 )
 
-// Token runs `<LFED_REEXEC> auth token`, falling back to `lfed` on PATH,
-// so a plugin works standalone during development. The lfed CLI refreshes
-// the token when necessary and prints the login hint when the user is
-// logged out. The child inherits LFED_INSECURE_STORAGE, so it uses the
-// credential backend of the parent lfed. The child's stderr is captured
-// and returned as the error, with the child's `lfed: ` prefix removed, so
-// the plugin prints the message once.
 func Token(ctx context.Context) (string, error) {
 	exe := os.Getenv("LFED_REEXEC")
 	if exe == "" {

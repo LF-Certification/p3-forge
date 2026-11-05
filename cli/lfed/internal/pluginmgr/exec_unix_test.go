@@ -18,15 +18,11 @@ func TestExecSignalExitCodes(t *testing.T) {
 	f := testFactory(t, &out, &errOut)
 	p := installHello(t, f)
 
-	// A plugin killed by SIGKILL (9) maps to 137.
 	err := Exec(context.Background(), f, p, []string{"kill"})
 	if ExitCode(err) != 137 {
 		t.Errorf("kill: err = %v, want exit 137", err)
 	}
 
-	// A relayed SIGTERM (15) reaches the plugin: it maps to 143. run has
-	// Notify registered before the plugin prints "ready", so the test
-	// process survives the signal it sends to itself.
 	pr, pw := io.Pipe()
 	f.IOStreams.Out = pw
 	done := make(chan error, 1)

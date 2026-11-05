@@ -1,16 +1,7 @@
-# GoReleaser builds the lfed archives for cli-release.yml. It does not create
-# the GitHub Release: the git tag is `cli/lfed/vX.Y.Z`, and GoReleaser can
-# only release a tag it derives the version from. The workflow sets
-# GORELEASER_CURRENT_TAG to a local `vX.Y.Z` tag, runs this file, then
-# uploads dist/ with softprops/action-gh-release against the real tag.
-#
-# Local check: `make release-snapshot`.
 version: 2
 
 project_name: lfed
 
-# Image tags (<name>-vX.Y.Z) and the cli/lfed/vX.Y.Z tag itself are not
-# versions GoReleaser can parse. The workflow supplies a local vX.Y.Z tag.
 git:
   ignore_tags:
     - "*-v*"
@@ -44,18 +35,10 @@ archives:
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE
-      - README.md
 
 checksum:
   name_template: checksums.txt
 
-# cosign keyless signature of checksums.txt. In cli-release.yml cosign gets
-# the job's GitHub OIDC token (`id-token: write`). The bundle
-# checksums.txt.sigstore.json holds the signature, the Fulcio certificate and
-# the Rekor entry. install.sh verifies it when cosign is on PATH. The
-# checksums cover every archive, so one signature covers the release.
-# `make release-snapshot` skips this step (`--skip=sign`).
-# There is no `sboms:` section: syft is not in devbox.json.
 signs:
   - id: checksums
     cmd: cosign

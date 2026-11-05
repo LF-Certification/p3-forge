@@ -65,7 +65,7 @@ func TestPrintYAMLFollowsJSONTags(t *testing.T) {
 	if err := Print(&buf, YAML, []row{{Name: "a", Count: 2}}, cols); err != nil {
 		t.Fatal(err)
 	}
-	// JSON field names, not Go names; a list of one mapping.
+
 	if got := buf.String(); got != "- name: a\n  count: 2\n" {
 		t.Fatalf("got %q", got)
 	}

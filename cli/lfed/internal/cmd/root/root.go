@@ -1,5 +1,3 @@
-// Package root builds the `lfed` root command and dispatches unknown
-// commands to plugins. See Run for the dispatch mechanism.
 package root
 
 import (
@@ -13,7 +11,6 @@ import (
 	"github.com/LF-Certification/p3-forge/cli/lfed/sdk/output"
 )
 
-// NewCmd builds the root command with its global flags and core commands.
 func NewCmd(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "lfed",
@@ -60,8 +57,6 @@ func NewCmd(f *cmdutil.Factory) *cobra.Command {
 	return cmd
 }
 
-// usageArgs wraps the Args validator of every command below cmd so a bad
-// argument count or an unknown subcommand returns a *cmdutil.UsageError.
 func usageArgs(cmd *cobra.Command) {
 	for _, c := range cmd.Commands() {
 		if validate := c.Args; validate != nil {

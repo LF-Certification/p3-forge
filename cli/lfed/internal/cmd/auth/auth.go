@@ -1,4 +1,3 @@
-// Package auth implements `lfed auth login|logout|status|token`.
 package auth
 
 import (
@@ -16,7 +15,6 @@ import (
 	"github.com/LF-Certification/p3-forge/cli/lfed/sdk/output"
 )
 
-// NewCmd builds the `lfed auth` group.
 func NewCmd(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auth",
@@ -106,7 +104,6 @@ Logout removes the credentials from the system keychain and from the
 	}
 }
 
-// statusRow is the `auth status` record.
 type statusRow struct {
 	Context  string    `json:"context"`
 	Username string    `json:"username"`
@@ -177,8 +174,6 @@ parent lfed.`,
 	}
 }
 
-// insecureStorageFlagSet reports whether --insecure-storage was given on
-// the command line.
 func insecureStorageFlagSet(cmd *cobra.Command) bool {
 	flag := cmd.Flags().Lookup("insecure-storage")
 	return flag != nil && flag.Changed

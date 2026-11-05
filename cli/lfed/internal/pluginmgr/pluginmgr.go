@@ -1,9 +1,3 @@
-// Package pluginmgr manages installed lfed plugins.
-//
-// A plugin lives in $XDG_DATA_HOME/lfed/plugins/<name>/ as the binary
-// lfed-<name> and the manifest lfed-plugin.json. the lfed CLI reads manifests
-// for listing and help. It executes a plugin only to run it, to complete
-// its arguments, or to read its manifest at install time.
 package pluginmgr
 
 import (
@@ -20,31 +14,23 @@ import (
 	sdkplugin "github.com/LF-Certification/p3-forge/cli/lfed/sdk/plugin"
 )
 
-// ManifestFile is the manifest name inside a plugin directory.
 const ManifestFile = "lfed-plugin.json"
 
-// Installed is one plugin found in the plugin directory.
 type Installed struct {
 	Manifest sdkplugin.Manifest
-	// Source is where the plugin came from. Zero when lfed-plugin.json
-	// records no source.
+
 	Source Source
-	// Dir is the plugin directory: <plugins>/<name>.
+
 	Dir string
-	// Binary is the executable path: <plugins>/<name>/lfed-<name>.
+
 	Binary string
 }
 
-// record is the on-disk shape of lfed-plugin.json: the manifest the plugin
-// printed plus the source the lfed CLI installed it from.
 type record struct {
 	sdkplugin.Manifest
 	Source Source `json:"source"`
 }
 
-// NotFoundError reports a word that is neither a core command nor an
-// installed plugin. The lfed CLI exits 2. Suggestions, when the caller
-// filled them, are close command words.
 type NotFoundError struct {
 	Name        string
 	Suggestions []string
@@ -57,8 +43,6 @@ func (e *NotFoundError) Error() string {
 	return fmt.Sprintf("unknown command %q for \"lfed\"; run \"lfed plugin list\"", e.Name)
 }
 
-// IncompatibleError reports a plugin whose requires_lfed range excludes the
-// running lfed CLI. the lfed CLI exits 2.
 type IncompatibleError struct {
 	Name     string
 	Requires string
@@ -69,10 +53,6 @@ func (e *IncompatibleError) Error() string {
 	return fmt.Sprintf("plugin %q requires lfed %s; the lfed CLI is %s", e.Name, e.Requires, e.Running)
 }
 
-// Dir returns the plugin directory: LFED_PLUGIN_DIR when set, else
-// $XDG_DATA_HOME/lfed/plugins, else ~/.local/share/lfed/plugins.
-// LFED_PLUGIN_DIR is a supported override, for example for a shared or
-// read-only plugin set.
 func Dir() (string, error) {
 	if d := os.Getenv("LFED_PLUGIN_DIR"); d != "" {
 		return d, nil
@@ -87,15 +67,10 @@ func Dir() (string, error) {
 	return filepath.Join(home, ".local", "share", "lfed", "plugins"), nil
 }
 
-// BinaryName returns the executable name of a plugin.
 func BinaryName(name string) string {
 	return "lfed-" + name
 }
 
-// List returns installed plugins sorted by name. It reads manifests
-// only. Directories without a manifest, and directories whose name is not
-// a plugin name (such as .install-* staging and .prev-* backups), are
-// skipped.
 func List() ([]Installed, error) {
 	dir, err := Dir()
 	if err != nil {
@@ -126,10 +101,6 @@ func List() ([]Installed, error) {
 	return out, nil
 }
 
-// Lookup returns the plugin called name. A name that does not match nameRe
-// or a missing binary yields *NotFoundError. A binary without a manifest,
-// or a manifest of another schema_version, yields an error that asks for
-// a reinstall.
 func Lookup(name string) (Installed, error) {
 	if !nameRe.MatchString(name) {
 		return Installed{}, &NotFoundError{Name: name}
@@ -156,8 +127,6 @@ func Lookup(name string) (Installed, error) {
 	return p, nil
 }
 
-// load reads <dir>/<name>/lfed-plugin.json. Missing files return an error
-// wrapping os.ErrNotExist.
 func load(dir, name string) (Installed, error) {
 	pdir := filepath.Join(dir, name)
 	data, err := os.ReadFile(filepath.Join(pdir, ManifestFile))
@@ -171,10 +140,6 @@ func load(dir, name string) (Installed, error) {
 	return Installed{Manifest: r.Manifest, Source: r.Source, Dir: pdir, Binary: filepath.Join(pdir, BinaryName(name))}, nil
 }
 
-// CheckLfedVersion verifies that the running lfed version satisfies the
-// requires_lfed range. A pre-release tag such as 0.1.0-dev is ignored so development
-// builds pass release ranges. Failure yields *IncompatibleError; the name
-// is filled by the caller when it is known.
 func CheckLfedVersion(requires, running string) error {
 	c, err := semver.NewConstraint(requires)
 	if err != nil {

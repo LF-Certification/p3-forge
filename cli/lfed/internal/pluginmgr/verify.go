@@ -21,48 +21,31 @@ import (
 	"oras.land/oras-go/v2/registry/remote"
 )
 
-// Signature contract. The plugin release workflow in p3-platform signs
-// each index with `cosign sign --new-bundle-format`, which attaches a
-// Sigstore bundle as an OCI referrer of the index digest. Both sides MUST
-// change together.
 const (
-	// bundleArtifactType is the artifactType of a referrer that holds a
-	// Sigstore bundle.
 	bundleArtifactType = "application/vnd.dev.sigstore.bundle.v0.3+json"
-	// bundleMediaTypePrefix starts the media type of the bundle layer.
+
 	bundleMediaTypePrefix = "application/vnd.dev.sigstore.bundle"
-	// maxBundleBytes caps one bundle layer.
+
 	maxBundleBytes = 1 << 20
-	// maxReferrerPages caps the referrer list pages read per index.
+
 	maxReferrerPages = 4
-	// maxReferrers caps the signature referrers read per index. A registry
-	// MUST NOT make the host fetch and keep an unbounded list before one
-	// signature is checked.
+
 	maxReferrers = 16
 
-	// githubIssuer is the OIDC issuer of GitHub Actions.
 	githubIssuer = "https://token.actions.githubusercontent.com"
-	// releaseWorkflow is the workflow that signs plugins of DefaultRegistry.
+
 	releaseWorkflow = "https://github.com/LF-Certification/p3-platform/.github/workflows/lfed-cli-plugins-release.yml"
 
-	// EnvSignerIdentity is a regular expression for the certificate SAN of
-	// plugins from a registry other than DefaultRegistry.
 	EnvSignerIdentity = "LFED_PLUGIN_SIGNER_IDENTITY"
-	// EnvSignerIssuer is the OIDC issuer of the certificate of plugins from
-	// a registry other than DefaultRegistry.
+
 	EnvSignerIssuer = "LFED_PLUGIN_SIGNER_ISSUER"
 )
 
-// signer is the certificate identity a plugin signature MUST carry.
 type signer struct {
 	Issuer   string
 	SANRegex string
 }
 
-// signerFor selects the signer policy for src at version. A plugin under
-// DefaultRegistry MUST be signed by the release workflow at the tag
-// lfed-cli-<name>/v<version>, so the signature binds name and version.
-// Another registry needs EnvSignerIdentity and EnvSignerIssuer.
 func signerFor(src Source, version string) (signer, error) {
 	if strings.HasPrefix(src.Ref, DefaultRegistry+"/") {
 		if version == "" {
@@ -82,10 +65,6 @@ func signerFor(src Source, version string) (signer, error) {
 	return signer{Issuer: issuer, SANRegex: id}, nil
 }
 
-// verifySignature checks that a Sigstore bundle attached to the index desc
-// is valid for s. One valid bundle is enough. The bundle MUST carry a
-// signed certificate timestamp, a transparency log entry and an observer
-// timestamp, and its subject digest MUST equal desc.Digest.
 func verifySignature(ctx context.Context, repo *remote.Repository, ref string, desc ocispec.Descriptor, s signer) error {
 	if desc.Digest.Algorithm() != digest.SHA256 {
 		return fmt.Errorf("%s: index digest %s is not sha256", ref, desc.Digest)
@@ -128,10 +107,6 @@ func verifySignature(ctx context.Context, repo *remote.Repository, ref string, d
 	return fmt.Errorf("%s: no signature from %s (issuer %s) is valid: %w", ref, s.SANRegex, s.Issuer, errors.Join(errs...))
 }
 
-// referrerBundles fetches the Sigstore bundles that refer to desc. oras-go
-// uses the OCI 1.1 referrers API, or the sha256-<hex> tag when the
-// registry has no such API. The list is bounded by maxReferrerPages and
-// maxReferrers; a longer list is an error, not a truncation.
 func referrerBundles(ctx context.Context, repo *remote.Repository, desc ocispec.Descriptor) ([]*bundle.Bundle, error) {
 	var referrers []ocispec.Descriptor
 	err := repo.Referrers(ctx, desc, bundleArtifactType, func(page []ocispec.Descriptor) error {
@@ -170,9 +145,6 @@ func referrerBundles(ctx context.Context, repo *remote.Repository, desc ocispec.
 	return out, nil
 }
 
-// parseBundleReferrer returns the bundle layer of a referrer manifest. The
-// manifest MUST hold exactly one layer whose media type starts with
-// bundleMediaTypePrefix, of at most maxBundleBytes.
 func parseBundleReferrer(data []byte) (ocispec.Descriptor, error) {
 	var m ocispec.Manifest
 	if err := json.Unmarshal(data, &m); err != nil {
@@ -193,9 +165,6 @@ func parseBundleReferrer(data []byte) (ocispec.Descriptor, error) {
 	return layers[0], nil
 }
 
-// trustedRoot fetches the Sigstore public-good trusted root through TUF.
-// The TUF cache is $XDG_CACHE_HOME/lfed/sigstore, or the sigstore-go
-// default when no cache directory is known.
 func trustedRoot(ctx context.Context) (*root.TrustedRoot, error) {
 	opts := tuf.DefaultOptions().WithContext(ctx)
 	if dir, err := os.UserCacheDir(); err == nil {

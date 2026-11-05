@@ -1,6 +1,3 @@
-// Package jq applies a jq filter to a JSON document, the way `gh --jq`
-// does: strings print raw, every other result prints as compact JSON,
-// one result per line.
 package jq
 
 import (
@@ -12,8 +9,6 @@ import (
 	"github.com/itchyny/gojq"
 )
 
-// Filter parses expr, runs it over doc and writes the results to w. doc
-// MUST be one JSON value; table output fails here with a clear message.
 func Filter(ctx context.Context, w io.Writer, expr string, doc []byte) error {
 	query, err := gojq.Parse(expr)
 	if err != nil {

@@ -25,24 +25,14 @@ import (
 	sdkplugin "github.com/LF-Certification/p3-forge/cli/lfed/sdk/plugin"
 )
 
-// nameRe is the accepted plugin name shape. The name is a path element and
-// a command word, so it is restricted to lower-case ASCII.
 var nameRe = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
-// Options tune Install.
 type Options struct {
-	// Reserved are core command words. A plugin with one of these names
-	// could never be dispatched, so Install refuses it.
 	Reserved []string
-	// AllowUnsigned skips the Sigstore signature check of OCI installs.
+
 	AllowUnsigned bool
 }
 
-// Install installs the plugin named by arg (see ParseSource) and returns
-// it. The binary is staged in the plugin directory, its signature is
-// verified (OCI only), it is asked for __metadata, validated against
-// f.Version, then moved into place together with lfed-plugin.json. An
-// existing install of the same name is replaced.
 func Install(ctx context.Context, f *cmdutil.Factory, arg string, opts Options) (Installed, error) {
 	src, err := ParseSource(arg)
 	if err != nil {
@@ -59,11 +49,11 @@ func install(ctx context.Context, f *cmdutil.Factory, src Source, opts Options) 
 	if err != nil {
 		return Installed{}, err
 	}
-	// #nosec G301 -- the plugin directory holds executables other users may run.
+	// #nosec G301
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return Installed{}, fmt.Errorf("create plugin dir: %w", err)
 	}
-	// Staging inside dir keeps the final os.Rename on one filesystem.
+
 	stage, err := os.MkdirTemp(dir, ".install-")
 	if err != nil {
 		return Installed{}, fmt.Errorf("create staging dir: %w", err)
@@ -94,14 +84,12 @@ func install(ctx context.Context, f *cmdutil.Factory, src Source, opts Options) 
 		if m.Name != src.Name() {
 			return Installed{}, fmt.Errorf("%s publishes plugin %q, not %q", src.Ref, m.Name, src.Name())
 		}
-		// A digest pin has no tag to compare.
+
 		if !src.digestPin() && m.Version != src.Version {
 			return Installed{}, fmt.Errorf("%s:%s reports version %q; the tag and the manifest disagree", src.Ref, src.Version, m.Version)
 		}
 	}
 
-	// Encoder, not MarshalIndent: requires_lfed holds `<` and `>`, which
-	// Marshal would write as \u003c and \u003e.
 	var manifest bytes.Buffer
 	enc := json.NewEncoder(&manifest)
 	enc.SetEscapeHTML(false)
@@ -112,7 +100,7 @@ func install(ctx context.Context, f *cmdutil.Factory, src Source, opts Options) 
 	if err := os.Rename(bin, filepath.Join(stage, BinaryName(m.Name))); err != nil {
 		return Installed{}, err
 	}
-	// #nosec G306 -- the manifest is not secret; `lfed plugin list` reads it.
+	// #nosec G306
 	if err := os.WriteFile(filepath.Join(stage, ManifestFile), manifest.Bytes(), 0o644); err != nil {
 		return Installed{}, fmt.Errorf("write manifest: %w", err)
 	}
@@ -127,13 +115,8 @@ func install(ctx context.Context, f *cmdutil.Factory, src Source, opts Options) 
 	return Installed{Manifest: m, Source: src, Dir: final, Binary: filepath.Join(final, BinaryName(m.Name))}, nil
 }
 
-// renameDir is os.Rename. Tests replace it to make a rename fail.
 var renameDir = os.Rename
 
-// replaceDir moves stage to final. An existing final is first renamed to
-// a sibling .prev-<name>-<random>, and is removed only after stage is in
-// place. When the rename of stage fails, the previous install is moved
-// back, so a failed install never removes a working plugin.
 func replaceDir(stage, final string) error {
 	prev := ""
 	if _, err := os.Lstat(final); err == nil {
@@ -153,15 +136,12 @@ func replaceDir(stage, final string) error {
 		return fmt.Errorf("install plugin: %w", err)
 	}
 	if prev != "" {
-		// The new install is in place. A leftover .prev- directory is
-		// skipped by List.
+
 		_ = os.RemoveAll(prev)
 	}
 	return nil
 }
 
-// fetchPath stages a local source: a directory is built with go build, a
-// file is copied.
 func fetchPath(ctx context.Context, path, bin string) error {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -173,11 +153,6 @@ func fetchPath(ctx context.Context, path, bin string) error {
 	return copyFile(path, bin)
 }
 
-// fetchOCI stages the binary from an OCI artifact. It returns src with
-// the resolved version (empty for a digest pin) and index digest.
-//
-// The signature is verified before the binary is pulled or run, unless
-// opts.AllowUnsigned is set.
 func fetchOCI(ctx context.Context, f *cmdutil.Factory, src Source, opts Options, bin string) (Source, error) {
 	running := f.Version
 	repo, err := ociRepository(src)
@@ -221,9 +196,6 @@ func fetchOCI(ctx context.Context, f *cmdutil.Factory, src Source, opts Options,
 	return src, pullOCI(ctx, repo, res.Index, src.Name(), ref, bin)
 }
 
-// Remove deletes the plugin directory <dir>/<name>. A name that does not
-// match nameRe, or that names no directory, yields *NotFoundError. A
-// directory without a manifest or binary (a broken install) is removed.
 func Remove(name string) error {
 	if !nameRe.MatchString(name) {
 		return &NotFoundError{Name: name}
@@ -233,8 +205,7 @@ func Remove(name string) error {
 		return err
 	}
 	target := filepath.Join(dir, name)
-	// nameRe already excludes separators and dots. Check the joined path
-	// again so the removal can never leave dir.
+
 	if rel, err := filepath.Rel(dir, target); err != nil || rel != name {
 		return &NotFoundError{Name: name}
 	}
@@ -247,12 +218,8 @@ func Remove(name string) error {
 	return nil
 }
 
-// metadataTimeout limits the `__metadata` run at install time.
 const metadataTimeout = 30 * time.Second
 
-// metadata runs `<bin> __metadata` and parses the manifest. The binary is
-// not trusted yet: it gets a minimal environment (metadataEnv) and
-// metadataTimeout.
 func metadata(ctx context.Context, bin, lfedVersion string) (sdkplugin.Manifest, error) {
 	ctx, cancel := context.WithTimeout(ctx, metadataTimeout)
 	defer cancel()
@@ -272,9 +239,6 @@ func metadata(ctx context.Context, bin, lfedVersion string) (sdkplugin.Manifest,
 	return m, nil
 }
 
-// metadataEnv is the environment of `__metadata`: PATH, HOME, the
-// temporary directory variables, SystemRoot (Windows) and
-// LFED_CLI_VERSION. Credentials in the operator's environment stay out.
 func metadataEnv(lfedVersion string) []string {
 	env := []string{"LFED_CLI_VERSION=" + lfedVersion}
 	for _, k := range []string{"PATH", "HOME", "TMPDIR", "TEMP", "TMP", "SystemRoot"} {
@@ -285,7 +249,6 @@ func metadataEnv(lfedVersion string) []string {
 	return env
 }
 
-// validate checks the manifest fields the lfed CLI depends on.
 func validate(m sdkplugin.Manifest, running string, reserved []string) error {
 	if m.SchemaVersion != sdkplugin.ManifestSchemaVersion {
 		return fmt.Errorf("schema_version %q; expected %q", m.SchemaVersion, sdkplugin.ManifestSchemaVersion)
@@ -313,9 +276,6 @@ func validate(m sdkplugin.Manifest, running string, reserved []string) error {
 	return err
 }
 
-// build compiles the main package under dir into out. dir itself is used
-// when it holds package main; otherwise exactly one cmd/lfed-* directory
-// must hold it.
 func build(ctx context.Context, dir, out string) error {
 	pkg, err := mainPackage(dir)
 	if err != nil {
@@ -335,7 +295,6 @@ func build(ctx context.Context, dir, out string) error {
 	return nil
 }
 
-// mainPackage finds the directory holding package main for dir.
 func mainPackage(dir string) (string, error) {
 	ok, err := isMain(dir)
 	if err != nil {
@@ -367,7 +326,6 @@ func mainPackage(dir string) (string, error) {
 	return "", fmt.Errorf("%s holds several main packages: %s", dir, strings.Join(mains, ", "))
 }
 
-// isMain reports whether dir holds non-test Go files declaring package main.
 func isMain(dir string) (bool, error) {
 	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 	if err != nil {
@@ -387,14 +345,13 @@ func isMain(dir string) (bool, error) {
 	return false, nil
 }
 
-// copyFile copies src to dst with mode 0755.
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
-	// #nosec G302 -- the plugin binary must be executable.
+	// #nosec G302
 	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
 	if err != nil {
 		return err
@@ -406,7 +363,6 @@ func copyFile(src, dst string) error {
 	return out.Close()
 }
 
-// trailer formats captured stderr for appending to an error message.
 func trailer(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {

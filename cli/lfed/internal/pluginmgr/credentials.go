@@ -10,16 +10,6 @@ import (
 	"oras.land/oras-go/v2/registry/remote/credentials"
 )
 
-// credential resolves registry credentials in this order:
-//
-//  1. Docker config store, including credential helpers.
-//  2. GITHUB_TOKEN, then GH_TOKEN, for ghcr.io only.
-//  3. `gh auth token`, for ghcr.io only.
-//
-// Nothing found yields EmptyCredential (anonymous). A GitHub token goes
-// only to the host of DefaultRegistry, so LFED_PLUGIN_REGISTRY or a full
-// reference cannot send it to another registry. ghcr.io accepts any
-// username with a token as the password.
 func credential(ctx context.Context, hostport string) (auth.Credential, error) {
 	if c, ok := dockerCredential(ctx, hostport); ok {
 		return c, nil
@@ -57,7 +47,6 @@ func tokenFromEnv() string {
 	return ""
 }
 
-// ghToken runs `gh auth token`. A missing gh or a logged-out gh yields "".
 func ghToken(ctx context.Context) string {
 	gh, err := exec.LookPath("gh")
 	if err != nil {

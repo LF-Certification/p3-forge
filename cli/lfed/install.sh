@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-# Install the lfed CLI from the GitHub Releases of LF-Certification/p3-forge.
-#
-#   curl -fsSL https://raw.githubusercontent.com/LF-Certification/p3-forge/main/cli/lfed/install.sh | bash
-#
-# Environment:
-#   LFED_VERSION      X.Y.Z to install. Default: the newest cli/lfed/v* release.
-#   LFED_INSTALL_DIR  Target directory. Default: ~/.local/bin.
-#   GITHUB_TOKEN      Optional. Raises the GitHub API rate limit.
-#
-# The installer checks the archive against checksums.txt. When `cosign` is on
-# PATH, it also verifies the keyless signature of checksums.txt
-# (checksums.txt.sigstore.json) against the release workflow identity and
-# stops if the signature is missing or does not match.
 set -euo pipefail
 
 REPO="LF-Certification/p3-forge"
@@ -41,13 +28,9 @@ if [ -n "${GITHUB_TOKEN:-}" ]; then
 fi
 
 api() {
-    # ${auth[@]+...}: bash 3.2 (macOS) treats an empty array as unbound
-    # under `set -u`.
     curl -fsSL ${auth[@]+"${auth[@]}"} -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${REPO}/$1"
 }
 
-# Newest cli/lfed/v* tag. /releases/latest is not used: other artifacts in
-# the repository may publish releases too.
 latest_version() {
     api "releases?per_page=100" |
         { grep -o "\"tag_name\": *\"${TAG_PREFIX}[0-9][^\"]*\"" || true; } |
@@ -56,9 +39,6 @@ latest_version() {
         tail -n1
 }
 
-# Download URL of one asset of the release at $tag, or empty. The release
-# JSON is the source of truth, so the slashes in the tag need no encoding
-# here. `|| true` keeps `set -e` from exiting before the caller's message.
 asset_url() {
     { grep -o "\"browser_download_url\": *\"[^\"]*/$1\"" "${tmp}/release.json" || true; } | sed -e 's|.*: *"||' -e 's|"$||' | head -n1
 }
@@ -85,8 +65,6 @@ echo "Downloading lfed ${version} (${os}/${arch})..."
 curl -fsSL -o "${tmp}/${archive}" "$archive_url" || die "download failed: ${archive_url}"
 curl -fsSL -o "${tmp}/checksums.txt" "$checksums_url" || die "download failed: ${checksums_url}"
 
-# The certificate identity binds the signature to this tag of the release
-# workflow in .github/workflows/cli-release.yml.
 if command -v cosign >/dev/null 2>&1; then
     bundle_url="$(asset_url checksums.txt.sigstore.json)"
     [ -n "$bundle_url" ] || die "release ${tag} has no checksums.txt.sigstore.json; cannot verify the signature. Set LFED_VERSION to a signed release."

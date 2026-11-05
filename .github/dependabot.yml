@@ -1,7 +1,5 @@
 version: 2
 updates:
-  # Keeps the SHA pins of `uses:` in .github/workflows current. Each pin
-  # carries a `# vX.Y.Z` comment that Dependabot updates with the SHA.
   - package-ecosystem: github-actions
     directory: /
     schedule:

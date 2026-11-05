@@ -1,4 +1,3 @@
-// Package version implements `lfed version`.
 package version
 
 import (
@@ -10,12 +9,10 @@ import (
 	"github.com/LF-Certification/p3-forge/cli/lfed/sdk/output"
 )
 
-// result is the -o json|yaml document of `lfed version`.
 type result struct {
 	Version string `json:"version"`
 }
 
-// NewCmd builds `lfed version`.
 func NewCmd(f *cmdutil.Factory) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",

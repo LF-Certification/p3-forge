@@ -13,8 +13,6 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-// newTestStore builds a plain-file Store in a temporary directory so tests
-// never touch the real OS keychain.
 func newTestStore(t *testing.T, dir, context string) Store {
 	t.Helper()
 	store, err := New(Options{Context: context, Insecure: true, StateDir: dir})
@@ -45,9 +43,6 @@ func TestStateDirFromEnv(t *testing.T) {
 	}
 }
 
-// TestKeyringPerContext runs the system-store path against go-keyring's
-// in-memory mock. Contexts MUST NOT share an item; delete MUST be a
-// no-op when nothing is stored.
 func TestKeyringPerContext(t *testing.T) {
 	keyring.MockInit()
 	dir := t.TempDir()
@@ -100,8 +95,7 @@ func TestCredentialsRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadCredentials: %v", err)
 	}
-	// JSON can change the time.Location without changing the instant, so
-	// compare the expiry with Equal.
+
 	if got.RefreshToken != want.RefreshToken || got.AccessToken != want.AccessToken || !got.AccessTokenExpiry.Equal(want.AccessTokenExpiry) {
 		t.Fatalf("LoadCredentials = %+v, want %+v", got, want)
 	}
@@ -123,7 +117,7 @@ func TestCredentialsFileIsOwnerOnly(t *testing.T) {
 	}
 	dir := t.TempDir()
 	path := filepath.Join(dir, "credentials-dev.json")
-	// A wider file from an older release is narrowed on the next write.
+
 	if err := os.WriteFile(path, []byte("{}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -145,8 +139,6 @@ func TestCredentialsFileIsOwnerOnly(t *testing.T) {
 	}
 }
 
-// TestWriteOwnerOnlyFileFailureLeavesNoTemp makes the final rename fail:
-// the target is a non-empty directory. The temporary file MUST be removed.
 func TestWriteOwnerOnlyFileFailureLeavesNoTemp(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "target")
@@ -167,8 +159,6 @@ func TestWriteOwnerOnlyFileFailureLeavesNoTemp(t *testing.T) {
 	}
 }
 
-// TestWriteOwnerOnlyFileReplaces checks that a second write replaces the
-// content and leaves only the target file.
 func TestWriteOwnerOnlyFileReplaces(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "f.json")
@@ -187,8 +177,6 @@ func TestWriteOwnerOnlyFileReplaces(t *testing.T) {
 	}
 }
 
-// TestLock checks that a held lock blocks a second Lock call until its
-// context ends, and that unlock releases it.
 func TestLock(t *testing.T) {
 	dir := t.TempDir()
 	first := newTestStore(t, dir, "dev")
@@ -202,7 +190,7 @@ func TestLock(t *testing.T) {
 	if _, err := second.Lock(ctx); !errors.Is(err, context.Canceled) {
 		t.Fatalf("Lock while held: err = %v, want context.Canceled", err)
 	}
-	// Another context has its own lock.
+
 	unlockProd, err := newTestStore(t, dir, "prod").Lock(context.Background())
 	if err != nil {
 		t.Fatalf("Lock prod: %v", err)

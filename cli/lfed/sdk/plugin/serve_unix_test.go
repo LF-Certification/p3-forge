@@ -16,9 +16,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TestServeCancelGrace runs Serve in a child process whose command blocks
-// on a read that does not watch the context. After SIGTERM the child MUST
-// exit 130 within CancelGrace, not wait for input.
 func TestServeCancelGrace(t *testing.T) {
 	if os.Getenv("LFED_SDK_TEST_CHILD") == "1" {
 		CancelGrace = 200 * time.Millisecond

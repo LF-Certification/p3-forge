@@ -110,7 +110,7 @@ func TestLfedYesSetsEveryYesFlag(t *testing.T) {
 			root := tree()
 			root.PersistentFlags().BoolVar(&rootYes, "yes", false, "Skip prompts")
 			root.AddCommand(&cobra.Command{Use: "probe", RunE: func(*cobra.Command, []string) error { return nil }})
-			// A plugin without a root --yes defines it per command.
+
 			plain := tree()
 			apply := &cobra.Command{Use: "apply", RunE: func(cmd *cobra.Command, _ []string) error {
 				applyYes, _ = cmd.Flags().GetBool("yes")
@@ -218,7 +218,6 @@ func TestUnderLfedUsageAndErrorsReadLfedName(t *testing.T) {
 		t.Fatalf("exit %d stderr %q", code, errOut.String())
 	}
 
-	// Completion requests from the CLI omit the plugin name; mount puts it back.
 	root = tree()
 	out.Reset()
 	root.SetOut(&out)

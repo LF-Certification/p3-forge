@@ -137,7 +137,7 @@ func TestRunUnknownCommandExits2(t *testing.T) {
 	if pluginmgr.ExitCode(err) != 2 {
 		t.Errorf("exit = %d, want 2", pluginmgr.ExitCode(err))
 	}
-	// A near miss names the core command or plugin it resembles.
+
 	err = Run(context.Background(), newFactory(&out), []string{"contxt"})
 	if err == nil || !strings.Contains(err.Error(), "did you mean context?") {
 		t.Fatalf("suggestion: %v", err)

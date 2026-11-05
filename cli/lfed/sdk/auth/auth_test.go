@@ -17,8 +17,6 @@ func writeScript(t *testing.T, body string) string {
 	return p
 }
 
-// TestTokenIgnoresStaleEnvToken checks that an exported LFED_TOKEN has no
-// effect: the token always comes from the lfed CLI.
 func TestTokenIgnoresStaleEnvToken(t *testing.T) {
 	t.Setenv("LFED_TOKEN", "stale")
 	t.Setenv("LFED_REEXEC", writeScript(t, `printf 'fresh\n'`))
@@ -36,8 +34,6 @@ func TestTokenReexecsHost(t *testing.T) {
 	}
 }
 
-// TestTokenPassesInsecureStorage checks that the child sees the
-// LFED_INSECURE_STORAGE value of the plugin process.
 func TestTokenPassesInsecureStorage(t *testing.T) {
 	t.Setenv("LFED_INSECURE_STORAGE", "1")
 	t.Setenv("LFED_REEXEC", writeScript(t, `[ "$LFED_INSECURE_STORAGE" = 1 ] || exit 9; printf 'tok\n'`))
