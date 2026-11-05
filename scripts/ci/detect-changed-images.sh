@@ -32,17 +32,21 @@ for arg in "$@"; do
     esac
 done
 
-if [ -n "${GITHUB_EVENT_BEFORE:-}" ] && [ "${GITHUB_EVENT_BEFORE}" != "0000000000000000000000000000000000000000" ]; then
-    # If set, then let's use that because that points to a commit sha before the current push event.
+# Select the base commit.
+# A fast-forward push MUST compare against GITHUB_EVENT_BEFORE.
+# Any other push (new branch, force push, unreachable sha) MUST compare
+# against the merge base with BASE_REF. An unreachable sha fails the
+# ancestor check, so a force push cannot fall through to a full rebuild.
+if [ -n "${GITHUB_EVENT_BEFORE:-}" ] &&
+    git merge-base --is-ancestor "${GITHUB_EVENT_BEFORE}" HEAD 2>/dev/null; then
     BASE_REF="${GITHUB_EVENT_BEFORE}"
-elif [ -n "${GITHUB_EVENT_BEFORE:-}" ] && [ "${GITHUB_EVENT_BEFORE}" == "0000000000000000000000000000000000000000" ]; then
-    # The env var will be "000.000" in a PR or branch so we'll use a different approach:
-    # Attempt to find the merge base (common ancestor) between the current BASE_REF (origin/main) and HEAD
-    BASE_REF=$(git merge-base "${BASE_REF}" HEAD 2>/dev/null || echo "${BASE_REF}")
+else
+    BASE_REF=$(git merge-base "${BASE_REF}" HEAD)
 fi
 
-# Get changed files in images/ directory
-CHANGED_FILES=$(git diff --name-only "${BASE_REF}...HEAD" -- images/ 2>/dev/null || git ls-files images/)
+# Get changed files in images/ directory. A failed diff MUST fail the
+# script. Do not fall back to a full image list.
+CHANGED_FILES=$(git diff --name-only "${BASE_REF}" HEAD -- images/)
 
 if [ -z "$CHANGED_FILES" ]; then
     if [ "$OUTPUT_FORMAT" = "json" ]; then
